@@ -41,7 +41,7 @@ This Haste server runs on Cloudflare's global edge network:
 
 Haste can easily be installed behind your network, and it's all open source!
 
-- **This version**: Modern Cloudflare Workers implementation
+- **This**: [Modern Cloudflare rework](https://github.com/sigman78/cf-haste-server)
 - **Original**: [haste-server](https://github.com/seejohnrun/haste-server) by John Crepezzi
 - **CLI client**: [haste-client](https://github.com/seejohnrun/haste-client)
 
@@ -49,4 +49,4 @@ Haste can easily be installed behind your network, and it's all open source!
 
 Original Haste by John Crepezzi &lt;john.crepezzi@gmail.com&gt;
 Key Design by Brian Dawson &lt;bridawson@gmail.com&gt;
-Modernized for Cloudflare Workers - 2026
+Modernized for Cloudflare - SiGMan &amp; AI
