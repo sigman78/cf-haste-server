@@ -1,4 +1,4 @@
-import { Save, FileText, Copy, Twitter } from 'lucide';
+import { Save, FileText, Copy, Twitter, createElement } from 'lucide';
 
 /**
  * Initialize vector icons in the UI
@@ -15,15 +15,16 @@ export function initializeIcons(): void {
 	Object.entries(iconConfig).forEach(([className, icon]) => {
 		const element = document.querySelector(`.${className}.function`);
 		if (element) {
-			// Generate SVG string from icon
-			const svgString = icon.toSvg({
+			// Create SVG element from icon node
+			const svgElement = createElement(icon, {
 				width: 24,
 				height: 24,
 				'stroke-width': 2,
 			});
 
-			// Set the SVG as innerHTML
-			element.innerHTML = svgString;
+			// Clear and append the SVG element
+			element.innerHTML = '';
+			element.appendChild(svgElement);
 		}
 	});
 }
