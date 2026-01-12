@@ -122,8 +122,10 @@ app.get('*', async (c) => {
 
   if (isDocumentRoute && !isAssetRoute) {
     // Rewrite to index.html for SPA routing
-    url.pathname = '/index.html';
-    return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
+    // Create a clean GET request to avoid issues with ASSETS binding
+    const indexUrl = new URL(c.req.url);
+    indexUrl.pathname = '/index.html';
+    return c.env.ASSETS.fetch(new Request(indexUrl.toString(), { method: 'GET' }));
   }
 
   // Forward all other requests to the static assets
