@@ -1,6 +1,6 @@
 // Optimized highlight.js configuration
 // Only imports commonly used languages instead of all 200+ languages
-// This reduces bundle size from ~970KB to ~150KB
+// This reduces bundle size significantly compared to importing all languages
 
 import hljs from 'highlight.js/lib/core';
 
@@ -29,6 +29,19 @@ import scss from 'highlight.js/lib/languages/scss';
 import markdown from 'highlight.js/lib/languages/markdown';
 import dockerfile from 'highlight.js/lib/languages/dockerfile';
 import nginx from 'highlight.js/lib/languages/nginx';
+import perl from 'highlight.js/lib/languages/perl';
+import lua from 'highlight.js/lib/languages/lua';
+import delphi from 'highlight.js/lib/languages/delphi';
+import objectivec from 'highlight.js/lib/languages/objectivec';
+import vbscript from 'highlight.js/lib/languages/vbscript';
+import vala from 'highlight.js/lib/languages/vala';
+import smalltalk from 'highlight.js/lib/languages/smalltalk';
+import lisp from 'highlight.js/lib/languages/lisp';
+import ini from 'highlight.js/lib/languages/ini';
+import diff from 'highlight.js/lib/languages/diff';
+import latex from 'highlight.js/lib/languages/latex';
+import erlang from 'highlight.js/lib/languages/erlang';
+import haskell from 'highlight.js/lib/languages/haskell';
 
 // Register languages
 hljs.registerLanguage('javascript', javascript);
@@ -61,11 +74,38 @@ hljs.registerLanguage('markdown', markdown);
 hljs.registerLanguage('md', markdown);
 hljs.registerLanguage('dockerfile', dockerfile);
 hljs.registerLanguage('nginx', nginx);
+hljs.registerLanguage('perl', perl);
+hljs.registerLanguage('pl', perl);
+hljs.registerLanguage('lua', lua);
+hljs.registerLanguage('delphi', delphi);
+hljs.registerLanguage('pas', delphi);
+hljs.registerLanguage('objectivec', objectivec);
+hljs.registerLanguage('objc', objectivec);
+hljs.registerLanguage('m', objectivec);
+hljs.registerLanguage('vbscript', vbscript);
+hljs.registerLanguage('vbs', vbscript);
+hljs.registerLanguage('vala', vala);
+hljs.registerLanguage('smalltalk', smalltalk);
+hljs.registerLanguage('sm', smalltalk);
+hljs.registerLanguage('lisp', lisp);
+hljs.registerLanguage('ini', ini);
+hljs.registerLanguage('diff', diff);
+hljs.registerLanguage('latex', latex);
+hljs.registerLanguage('tex', latex);
+hljs.registerLanguage('erlang', erlang);
+hljs.registerLanguage('erl', erlang);
+hljs.registerLanguage('haskell', haskell);
+hljs.registerLanguage('hs', haskell);
 
-// Aliases for common variations
+// Additional aliases for common file extensions
 hljs.registerLanguage('js', javascript);
 hljs.registerLanguage('ts', typescript);
 hljs.registerLanguage('py', python);
 hljs.registerLanguage('rb', ruby);
+hljs.registerLanguage('rs', rust);
+hljs.registerLanguage('kt', kotlin);
+hljs.registerLanguage('htm', xml);
+hljs.registerLanguage('cc', cpp);
+hljs.registerLanguage('h', cpp);
 
 export default hljs;
