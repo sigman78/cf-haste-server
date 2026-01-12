@@ -102,25 +102,23 @@ app.get('/raw/:id', async (c) => {
   }
 });
 
-// Serve about.md - route to SPA for browser navigation, raw file for fetch requests
-app.get('/about.md', async (c) => {
-  const accept = c.req.header('accept') || '';
-
-  // If browser navigation (Accept header includes text/html), serve SPA
-  if (accept.includes('text/html')) {
-    const indexUrl = new URL(c.req.url);
-    indexUrl.pathname = '/index.html';
-    return c.env.ASSETS.fetch(new Request(indexUrl.toString(), { method: 'GET' }));
-  }
-
-  // For fetch requests, serve the actual about.md file
-  return c.env.ASSETS.fetch(c.req.raw);
-});
-
 // Serve static assets from Vite build
 app.get('*', async (c) => {
   const url = new URL(c.req.url);
   const path = url.pathname;
+
+  // Special handling for /about.md - serve SPA for HTML requests, raw file for fetch
+  if (path === '/about.md') {
+    const accept = c.req.header('accept') || '';
+    // Browser navigation includes text/html in Accept header
+    if (accept.includes('text/html')) {
+      const indexUrl = new URL(c.req.url);
+      indexUrl.pathname = '/index.html';
+      return c.env.ASSETS.fetch(new Request(indexUrl.toString(), { method: 'GET' }));
+    }
+    // fetch() requests from JS will get the raw file
+    return c.env.ASSETS.fetch(c.req.raw);
+  }
 
   // If path looks like a document key (e.g., /abc123 or /abc123.js),
   // serve index.html to let the SPA handle routing
