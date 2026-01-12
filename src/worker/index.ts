@@ -21,7 +21,7 @@ app.get('/documents/:id', async (c) => {
   if (key === 'about') {
     try {
       const aboutUrl = new URL(c.req.url);
-      aboutUrl.pathname = '/about.md';
+      aboutUrl.pathname = '/_about.md';
       const aboutResponse = await c.env.ASSETS.fetch(new Request(aboutUrl.toString(), { method: 'GET' }));
 
       if (aboutResponse.ok) {
@@ -128,7 +128,7 @@ app.get('/raw/:id', async (c) => {
 app.get('*', async (c) => {
   const url = new URL(c.req.url);
   const path = url.pathname;
-
+/*
   // Special handling for /about.md - serve SPA for HTML requests, raw file for fetch
   if (path === '/about.md') {
     const accept = c.req.header('accept') || '';
@@ -141,13 +141,13 @@ app.get('*', async (c) => {
     // fetch() requests from JS will get the raw file
     return c.env.ASSETS.fetch(c.req.raw);
   }
-
+*/
   // If path looks like a document key (e.g., /abc123 or /abc123.js),
   // serve index.html to let the SPA handle routing
   const isDocumentRoute = path.match(/^\/[a-zA-Z0-9]+(\.[a-z]+)?$/);
   const isAssetRoute = path.startsWith('/assets/') || path.endsWith('.css') ||
-                       path.endsWith('.png') || path.endsWith('.txt') ||
-                       path.endsWith('.md');
+                       path.endsWith('.png') || path.endsWith('.txt');// ||
+                       //path.endsWith('.md');
 
   if (isDocumentRoute && !isAssetRoute) {
     // Rewrite to index.html for SPA routing
