@@ -1,4 +1,12 @@
-# Haste - Cloudflare Workers Edition
+```
+ _   _           _
+| | | | __ _ ___| |_ ___
+| |_| |/ _` / __| __/ _ \
+|  _  | (_| \__ \ ||  __/
+|_| |_|\__,_|___/\__\___|
+
+Cloudflare Workers Edition
+```
 
 > **Note:** This is a modernized version of Haste rebuilt for Cloudflare Workers with D1 database, TypeScript, and Vite. For the original Node.js version, see [seejohnrun/haste-server](https://github.com/seejohnrun/haste-server).
 
@@ -13,24 +21,18 @@ Haste is an open-source pastebin that makes sharing code and text incredibly sim
 * Be really simple
 * Be easy to set up and use
 
-## ✨ This Modernized Version
+## This Modernized Version
 
 This version has been completely rewritten for the modern web:
 
-- **🌍 Global Edge Deployment** - Runs on Cloudflare's 300+ data centers worldwide
-- **⚡ Zero Cold Starts** - Always-on Workers runtime
-- **🗄️ D1 Database** - SQLite at the edge for reliable persistence
-- **📦 Modern Stack** - TypeScript, Vite, Hono framework
-- **🎨 No jQuery** - Pure TypeScript with modern DOM APIs
-- **🧪 Tested** - Comprehensive test suite included
+- **Global Edge Deployment** - Runs on Cloudflare's 300+ data centers worldwide
+- **Zero Cold Starts** - Always-on Workers runtime
+- **D1 Database** - SQLite at the edge for reliable persistence
+- **Modern Stack** - TypeScript, Vite, Hono framework
+- **No jQuery** - Pure TypeScript with modern DOM APIs
+- **Tested** - Comprehensive test suite included
 
-## 📚 Documentation
-
-- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 5 minutes
-- **[README-CLOUDFLARE.md](README-CLOUDFLARE.md)** - Complete documentation
-- **[TEST_RESULTS.md](TEST_RESULTS.md)** - Test suite results
-
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install dependencies
@@ -45,7 +47,7 @@ npm run dev
 
 Visit `http://localhost:8787` and start pasting!
 
-## 📦 Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
@@ -56,7 +58,7 @@ Visit `http://localhost:8787` and start pasting!
 | **Build** | Vite 6.x |
 | **Deploy** | Wrangler CLI |
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run automated test suite
@@ -69,7 +71,7 @@ npm run db:inspect
 npm run db:query "SELECT * FROM documents"
 ```
 
-## 📝 Scripts
+## Scripts
 
 | Command | Description |
 |---------|-------------|
@@ -81,7 +83,7 @@ npm run db:query "SELECT * FROM documents"
 | `npm run db:migrate:remote` | Run migrations in production |
 | `npm run db:inspect` | View recent documents in database |
 
-## 🌐 Deployment
+## Deployment
 
 ### Local Development
 Already set up! Just run `npm run dev`.
@@ -106,7 +108,7 @@ Already set up! Just run `npm run dev`.
 
 Your Haste server will be live at `https://haste.YOUR-SUBDOMAIN.workers.dev`
 
-## ⚙️ Configuration
+## Configuration
 
 Edit `wrangler.toml`:
 
@@ -117,7 +119,7 @@ KEY_LENGTH = "10"              # Length of paste IDs
 DEFAULT_EXPIRE_DAYS = "30"     # Days until expiration
 ```
 
-## 🎮 Usage
+## Usage
 
 ### Web Interface
 
@@ -147,7 +149,7 @@ curl http://localhost:8787/documents/YOUR_KEY
 curl http://localhost:8787/raw/YOUR_KEY
 ```
 
-## 🔧 Migration from Original Haste
+## Migration from Original Haste
 
 This version is API-compatible but uses different infrastructure:
 
@@ -160,14 +162,14 @@ To migrate data, export from your old storage and import to D1 using:
 npm run db:query "INSERT INTO documents (id, content, created_at, expires_at) VALUES (?, ?, ?, ?)"
 ```
 
-## 📊 Performance
+## Performance
 
 - **Document creation**: < 50ms
 - **Document retrieval**: < 20ms
 - **Static assets**: < 10ms (CDN edge)
 - **Global latency**: < 50ms (99th percentile)
 
-## 💰 Cost
+## Cost
 
 Cloudflare Workers Free Tier includes:
 - 100,000 requests/day
@@ -178,7 +180,7 @@ Cloudflare Workers Free Tier includes:
 
 Perfect for personal use or small teams!
 
-## 🤝 Contributing
+## Contributing
 
 This is a modernized fork. For issues specific to this Cloudflare version, please open an issue in this repository.
 
@@ -186,17 +188,10 @@ For the original Haste project:
 - [haste-server](https://github.com/seejohnrun/haste-server) - Original server
 - [haste-client](https://github.com/seejohnrun/haste-client) - CLI client
 
-## 📄 License
+## License
 
 MIT License
 
 Original Haste by [John Crepezzi](https://github.com/seejohnrun)
 Cloudflare Workers modernization - 2026
 
----
-
-**Quick Links:**
-- [Full Documentation](README-CLOUDFLARE.md)
-- [Quick Start Guide](QUICKSTART.md)
-- [Test Results](TEST_RESULTS.md)
-- [Original Haste](https://github.com/seejohnrun/haste-server)
