@@ -14,24 +14,24 @@
 	</head>
 
 	<body>
-		<div id="key">
-			<div id="pointer" style="display: none;"></div>
+		<header id="key">
+			<div id="pointer" style="display: none;" aria-hidden="true"></div>
 			<div id="box1">
-				<a href="/about.md" class="logo"></a>
+				<a href="/about.md" class="logo" aria-label="About hastebin"></a>
 			</div>
-			<div id="box2">
-				<div class="save function"></div>
-				<div class="new function"></div>
-				<div class="duplicate function"></div>
-				<div class="twitter function"></div>
-			</div>
-			<div id="box3" style="display: none;">
+			<nav id="box2">
+				<div class="save function" aria-label="Save Paste" type="button"></div>
+				<div class="new function" aria-label="New Paste" type="button"></div>
+				<div class="duplicate function" aria-label="Duplicate Paste" type="button"></div>
+				<div class="twitter function" aria-label="Post to twitter" type="button"></div>
+			</nav>
+			<div id="box3" style="display: none;" aria-hidden="true">
 				<div class="label"></div>
 				<div class="shortcut"></div>
 			</div>
-		</div>
+		</header>
 
 		<pre id="box" style="display: none;" tabindex="0"><code></code></pre>
-		<textarea spellcheck="false" style="display: none;"></textarea>
+		<textarea spellcheck="false" style="display: none;" placeholder="Paste your code here..."></textarea>
 	</body>
 </html>
