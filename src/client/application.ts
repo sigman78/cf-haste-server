@@ -1,5 +1,6 @@
 import type { GetResponse, SaveResponse } from '../shared/types';
 import hljs from 'highlight.js';
+import 'highlight.js/styles/base16/solarized-dark.css';
 
 // Extension to language mapping
 const extensionMap: Record<string, string> = {
