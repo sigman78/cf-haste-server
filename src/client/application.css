@@ -1,7 +1,13 @@
+html, body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
 body {
 	background: #002B36;
 	padding: 20px;
-	margin: 0px;
+	box-sizing: border-box;
 }
 
 /* textarea */

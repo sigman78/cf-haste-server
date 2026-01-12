@@ -4,3 +4,14 @@ node_modules
 *.swo
 data
 *.DS_Store
+
+# Build outputs
+dist/
+.wrangler/
+
+# Cloudflare
+.dev.vars
+.env
+
+# TypeScript
+*.tsbuildinfo

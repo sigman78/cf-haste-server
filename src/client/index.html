@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>hastebin</title>
+
+		<link rel="stylesheet" type="text/css" href="./solarized_dark.css" />
+		<link rel="stylesheet" type="text/css" href="./application.css" />
+
+		<meta name="robots" content="noindex,nofollow" />
+
+		<script type="module" src="./application.ts"></script>
+	</head>
+
+	<body>
+		<div id="key">
+			<div id="pointer" style="display: none;"></div>
+			<div id="box1">
+				<a href="/about.md" class="logo"></a>
+			</div>
+			<div id="box2">
+				<div class="save function"></div>
+				<div class="new function"></div>
+				<div class="duplicate function"></div>
+				<div class="twitter function"></div>
+			</div>
+			<div id="box3" style="display: none;">
+				<div class="label"></div>
+				<div class="shortcut"></div>
+			</div>
+		</div>
+
+		<pre id="box" style="display: none;" tabindex="0"><code></code></pre>
+		<textarea spellcheck="false" style="display: none;"></textarea>
+	</body>
+</html>
