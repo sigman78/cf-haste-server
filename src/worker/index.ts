@@ -102,8 +102,30 @@ app.get('/raw/:id', async (c) => {
   }
 });
 
+// Serve about.md as a raw document (for SPA loading)
+app.get('/about.md', async (c) => {
+  // Let ASSETS serve the about.md file
+  return c.env.ASSETS.fetch(c.req.raw);
+});
+
 // Serve static assets from Vite build
 app.get('*', async (c) => {
+  const url = new URL(c.req.url);
+  const path = url.pathname;
+
+  // If path looks like a document key (e.g., /abc123 or /abc123.js),
+  // serve index.html to let the SPA handle routing
+  const isDocumentRoute = path.match(/^\/[a-zA-Z0-9]+(\.[a-z]+)?$/);
+  const isAssetRoute = path.startsWith('/assets/') || path.endsWith('.css') ||
+                       path.endsWith('.png') || path.endsWith('.txt') ||
+                       path.endsWith('.md');
+
+  if (isDocumentRoute && !isAssetRoute) {
+    // Rewrite to index.html for SPA routing
+    url.pathname = '/index.html';
+    return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
+  }
+
   // Forward all other requests to the static assets
   return c.env.ASSETS.fetch(c.req.raw);
 });
