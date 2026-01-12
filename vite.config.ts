@@ -14,6 +14,10 @@ export default defineConfig({
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]',
+        manualChunks: {
+          // Split highlight.js into its own chunk for better caching
+          'highlight': ['highlight.js'],
+        },
       },
     },
   },

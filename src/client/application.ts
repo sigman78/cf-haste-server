@@ -1,5 +1,6 @@
 import type { GetResponse, SaveResponse } from '../shared/types';
-import hljs from 'highlight.js';
+// Use optimized highlight.js with only common languages (~150KB vs ~970KB)
+import hljs from './highlight-config';
 import 'highlight.js/styles/base16/solarized-dark.css';
 
 // Extension to language mapping
