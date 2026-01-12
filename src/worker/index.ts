@@ -102,9 +102,18 @@ app.get('/raw/:id', async (c) => {
   }
 });
 
-// Serve about.md as a raw document (for SPA loading)
+// Serve about.md - route to SPA for browser navigation, raw file for fetch requests
 app.get('/about.md', async (c) => {
-  // Let ASSETS serve the about.md file
+  const accept = c.req.header('accept') || '';
+
+  // If browser navigation (Accept header includes text/html), serve SPA
+  if (accept.includes('text/html')) {
+    const indexUrl = new URL(c.req.url);
+    indexUrl.pathname = '/index.html';
+    return c.env.ASSETS.fetch(new Request(indexUrl.toString(), { method: 'GET' }));
+  }
+
+  // For fetch requests, serve the actual about.md file
   return c.env.ASSETS.fetch(c.req.raw);
 });
 

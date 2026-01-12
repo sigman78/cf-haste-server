@@ -244,6 +244,33 @@ class Haste {
     const parts = key.split('.', 2);
     this.doc = new HasteDocument();
 
+    // Special handling for about.md - load from static file
+    if (key === 'about.md') {
+      try {
+        const response = await fetch('/about.md');
+        if (response.ok) {
+          const content = await response.text();
+          const highlighted = hljs.highlight(content, { language: 'markdown' });
+
+          this.code.innerHTML = highlighted.value;
+          this.setTitle('about');
+
+          if (window.location.pathname !== '/about.md') {
+            window.history.pushState(null, `${this.appName}-about`, '/about.md');
+          }
+
+          this.fullKey();
+          this.textarea.value = '';
+          this.textarea.style.display = 'none';
+          this.box.style.display = 'block';
+          this.box.focus();
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading about.md:', error);
+      }
+    }
+
     const ret = await this.doc.load(parts[0], this.lookupTypeByExtension(parts[1]));
 
     if (ret) {
