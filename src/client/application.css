@@ -93,13 +93,18 @@ textarea {
 }
 
 #box2 .function.enabled {
-	opacity: 0.7;
+	opacity: 0.5;
 }
 
 #box2 .function.enabled:hover {
 	cursor: hand;
 	cursor: pointer;
 	opacity: 1;
+}
+
+#box2 .function.enabled:hover svg {
+	color: #d33682;
+	display: block;
 }
 
 #pointer {
