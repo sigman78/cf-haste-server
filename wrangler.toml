@@ -1,0 +1,26 @@
+name = "haste"
+main = "src/worker/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Uncomment to use a custom domain
+# routes = [
+#   { pattern = "haste.example.com", custom_domain = true }
+# ]
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "haste-db"
+database_id = "" # Run: wrangler d1 create haste-db
+
+# Assets binding for serving static files
+[assets]
+directory = "./dist/client"
+binding = "ASSETS"
+
+# Environment variables
+[vars]
+MAX_PASTE_SIZE = "400000"
+KEY_LENGTH = "10"
+DEFAULT_EXPIRE_DAYS = "30"
