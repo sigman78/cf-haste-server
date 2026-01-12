@@ -80,7 +80,6 @@ textarea {
 	justify-content: center;
 	position: relative;
 	opacity: 0.3;
-	transition: opacity 0.2s ease;
 }
 
 #box2 .link embed {
@@ -93,7 +92,7 @@ textarea {
 }
 
 #box2 .function.enabled {
-	opacity: 0.5;
+	opacity: 0.8;
 }
 
 #box2 .function.enabled:hover {
@@ -109,9 +108,9 @@ textarea {
 
 #pointer {
 	display: block;
-	height: 5px;
-	width: 10px;
-	background: url(hover-dropdown-tip.png);
+	height: 3px;
+	width: 32px;
+	background: #c4dce3;
 	bottom: 0px;
 	position: absolute;
 	margin: auto;
