@@ -78,6 +78,29 @@ class HasteDocument {
     lang?: string
   ): Promise<{ value: string; key: string; language?: string } | null> {
     try {
+      // Special handling for about.md - load from static file
+      if (key === 'about') {
+        const response = await fetch('/about.md');
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const content = await response.text();
+
+        this.locked = true;
+        this.key = 'about';
+        this.data = content;
+
+        const high = hljs.highlight(content, { language: 'markdown' });
+
+        return {
+          value: high.value,
+          key: 'about',
+          language: 'markdown',
+        };
+      }
+
       const response = await fetch(`/documents/${key}`);
 
       if (!response.ok) {
@@ -243,33 +266,6 @@ class Haste {
   async loadDocument(key: string): Promise<void> {
     const parts = key.split('.', 2);
     this.doc = new HasteDocument();
-
-    // Special handling for about.md - load from static file
-    if (key === 'about.md') {
-      try {
-        const response = await fetch('/about.md');
-        if (response.ok) {
-          const content = await response.text();
-          const highlighted = hljs.highlight(content, { language: 'markdown' });
-
-          this.code.innerHTML = highlighted.value;
-          this.setTitle('about');
-
-          if (window.location.pathname !== '/about.md') {
-            window.history.pushState(null, `${this.appName}-about`, '/about.md');
-          }
-
-          this.fullKey();
-          this.textarea.value = '';
-          this.textarea.style.display = 'none';
-          this.box.style.display = 'block';
-          this.box.focus();
-          return;
-        }
-      } catch (error) {
-        console.error('Error loading about.md:', error);
-      }
-    }
 
     const ret = await this.doc.load(parts[0], this.lookupTypeByExtension(parts[1]));
 
