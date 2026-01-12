@@ -78,29 +78,6 @@ class HasteDocument {
     lang?: string
   ): Promise<{ value: string; key: string; language?: string } | null> {
     try {
-      // Special handling for about.md - load from static file
-      if (key === 'about') {
-        const response = await fetch('/about.md');
-
-        if (!response.ok) {
-          return null;
-        }
-
-        const content = await response.text();
-
-        this.locked = true;
-        this.key = 'about';
-        this.data = content;
-
-        const high = hljs.highlight(content, { language: 'markdown' });
-
-        return {
-          value: high.value,
-          key: 'about',
-          language: 'markdown',
-        };
-      }
-
       const response = await fetch(`/documents/${key}`);
 
       if (!response.ok) {

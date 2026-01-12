@@ -16,6 +16,28 @@ app.get('/health', (c) => {
 // Get document by key
 app.get('/documents/:id', async (c) => {
   const key = c.req.param('id');
+
+  // Special handling for "about" - load from about.md static file
+  if (key === 'about') {
+    try {
+      const aboutUrl = new URL(c.req.url);
+      aboutUrl.pathname = '/about.md';
+      const aboutResponse = await c.env.ASSETS.fetch(new Request(aboutUrl.toString(), { method: 'GET' }));
+
+      if (aboutResponse.ok) {
+        const content = await aboutResponse.text();
+        const response: GetResponse = {
+          content,
+          key: 'about',
+        };
+        return c.json(response);
+      }
+    } catch (error) {
+      console.error('Error loading about.md:', error);
+    }
+    return c.json({ message: 'Document not found' }, 404);
+  }
+
   const store = createStore(c.env);
 
   try {
