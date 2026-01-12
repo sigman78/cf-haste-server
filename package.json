@@ -24,7 +24,11 @@
 		"db:create": "wrangler d1 create haste-db",
 		"db:migrate:local": "wrangler d1 migrations apply haste-db --local",
 		"db:migrate:remote": "wrangler d1 migrations apply haste-db --remote",
-		"type-check": "tsc --noEmit"
+		"db:query": "wrangler d1 execute haste-db --local --command",
+		"db:inspect": "wrangler d1 execute haste-db --local --command \"SELECT id, LENGTH(content) as size, views, datetime(created_at, 'unixepoch') as created FROM documents ORDER BY created_at DESC LIMIT 20\"",
+		"type-check": "tsc --noEmit",
+		"test": "node test/api.test.mjs",
+		"test:bash": "./test-api.sh"
 	},
 	"dependencies": {
 		"hono": "^4.6.3",

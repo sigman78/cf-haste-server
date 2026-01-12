@@ -12,7 +12,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "haste-db"
-database_id = "" # Run: wrangler d1 create haste-db
+database_id = "00000000-0000-0000-0000-000000000000" # Placeholder for local dev - run: wrangler d1 create haste-db for production
 
 # Assets binding for serving static files
 [assets]
