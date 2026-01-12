@@ -2,6 +2,7 @@ import type { GetResponse, SaveResponse } from '../shared/types';
 // Use optimized highlight.js with only common languages (~150KB vs ~970KB)
 import hljs from './highlight-config';
 import 'highlight.js/styles/base16/solarized-dark.css';
+import { initializeIcons } from './icons';
 
 // Extension to language mapping
 const extensionMap: Record<string, string> = {
@@ -433,6 +434,9 @@ setTimeout(() => {
 
 // Construct app and load initial path
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize vector icons first
+  initializeIcons();
+
   app = new Haste('hastebin', { twitter: true });
   handlePop({ target: window });
 });
