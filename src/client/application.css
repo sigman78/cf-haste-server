@@ -73,27 +73,44 @@ textarea {
 }
 
 #box2 .function {
-	background: url(function-icons.png);
 	width: 32px;
 	height: 37px;
-	display: inline-block;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	position: relative;
+	opacity: 0.3;
 }
 
 #box2 .link embed {
 	vertical-align: bottom; /* fix for zeroClipboard style */
 }
 
+#box2 .function svg {
+	color: #c4dce3;
+	display: block;
+}
+
+#box2 .function.enabled {
+	opacity: 0.8;
+}
+
 #box2 .function.enabled:hover {
 	cursor: hand;
 	cursor: pointer;
+	opacity: 1;
+}
+
+#box2 .function.enabled:hover svg {
+	color: #d33682;
+	display: block;
 }
 
 #pointer {
 	display: block;
-	height: 5px;
-	width: 10px;
-	background: url(hover-dropdown-tip.png);
+	height: 3px;
+	width: 32px;
+	background: #c4dce3;
 	bottom: 0px;
 	position: absolute;
 	margin: auto;
@@ -119,22 +136,3 @@ textarea {
 	font-weight: normal;
 }
 
-#box2 .function.save { background-position: -5px top; }
-#box2 .function.enabled.save { background-position: -5px center; }
-#box2 .function.enabled.save:hover { background-position: -5px bottom; }
-
-#box2 .function.new { background-position: -42px top; }
-#box2 .function.enabled.new { background-position: -42px center; }
-#box2 .function.enabled.new:hover { background-position: -42px bottom; }
-
-#box2 .function.duplicate { background-position: -79px top; }
-#box2 .function.enabled.duplicate { background-position: -79px center; }
-#box2 .function.enabled.duplicate:hover { background-position: -79px bottom; }
-
-#box2 .function.link { background-position: -116px top; }
-#box2 .function.enabled.link { background-position: -116px center; }
-#box2 .function.enabled.link:hover { background-position: -116px bottom; }
-
-#box2 .function.twitter { background-position: -153px top; }
-#box2 .function.enabled.twitter { background-position: -153px center; }
-#box2 .function.enabled.twitter:hover { background-position: -153px bottom; }
