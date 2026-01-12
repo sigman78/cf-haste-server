@@ -12,19 +12,18 @@ export function initializeIcons(): void {
 		twitter: Twitter,
 	};
 
-	Object.entries(iconConfig).forEach(([className, IconComponent]) => {
+	Object.entries(iconConfig).forEach(([className, icon]) => {
 		const element = document.querySelector(`.${className}.function`);
 		if (element) {
-			// Create the icon
-			const icon = IconComponent.createElement({
+			// Generate SVG string from icon
+			const svgString = icon.toSvg({
 				width: 24,
 				height: 24,
-				strokeWidth: 2,
+				'stroke-width': 2,
 			});
 
-			// Clear existing content and append icon
-			element.innerHTML = '';
-			element.appendChild(icon);
+			// Set the SVG as innerHTML
+			element.innerHTML = svgString;
 		}
 	});
 }
