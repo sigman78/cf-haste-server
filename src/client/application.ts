@@ -213,19 +213,31 @@ class Haste {
     });
   }
 
-  newDocument(hideHistory = false): void {
-    this.box.style.display = 'none';
-    this.doc = new HasteDocument();
+  async newDocument(hideHistory = false): Promise<void> {
 
-    if (!hideHistory) {
-      window.history.pushState(null, this.appName, '/');
-    }
+    const applyView = () => {
+      this.box.style.display = 'none';
+      this.doc = new HasteDocument();
 
-    this.setTitle();
-    this.lightKey();
-    this.textarea.value = '';
-    this.textarea.style.display = 'block';
-    this.textarea.focus();
+      if (!hideHistory) {
+        window.history.pushState(null, this.appName, '/');
+      }
+
+      this.setTitle();
+      this.lightKey();
+      this.textarea.value = '';
+      this.textarea.style.display = 'block';
+      this.textarea.focus();
+    };
+
+    // Now start transition to new view (if capable)
+  	if (!document.startViewTransition) {
+  		applyView();
+  	} else {
+  		await document.startViewTransition(() => {
+  			applyView();
+  		});
+  	}
   }
 
   lookupExtensionByType(type: string): string {
