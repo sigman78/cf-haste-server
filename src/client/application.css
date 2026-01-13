@@ -63,13 +63,16 @@ textarea {
 
 #box1 a.logo, #box1 a.logo:visited {
 	display: inline-block;
-	background: url(logo.png);
 	width: 126px;
 	height: 42px;
+	mask: url('logo.svg') no-repeat center;
+  	mask-size: contain;
+	background-color: #fdf6e3;
+  	transition: background-color 0.3s ease;
 }
 
 #box1 a.logo:hover {
-	background-position: 0 bottom;
+    background-color: #d33682;
 }
 
 #box2 .function {
