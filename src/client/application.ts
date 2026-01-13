@@ -270,10 +270,14 @@ class Haste {
   }
 
   duplicateDocument(): void {
-    if (this.doc.locked && this.doc.data) {
-      const currentData = this.doc.data;
-      this.newDocument();
-      this.textarea.value = currentData;
+    if (this.doc.locked) {
+      // Get content from doc.data if available, otherwise from the code element
+      const currentData = this.doc.data || this.code.textContent || '';
+
+      if (currentData) {
+        this.newDocument();
+        this.textarea.value = currentData;
+      }
     }
   }
 
