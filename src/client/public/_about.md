@@ -47,6 +47,6 @@ Haste can easily be installed behind your network, and it's all open source!
 
 ## Credits
 
-Original Haste by John Crepezzi &lt;john.crepezzi@gmail.com&gt;
-Key Design by Brian Dawson &lt;bridawson@gmail.com&gt;
-Modernized for Cloudflare - SiGMan &amp; AI
+Original Haste by John Crepezzi <john.crepezzi@gmail.com>
+Key Design by Brian Dawson <bridawson@gmail.com>
+Modernized for Cloudflare - SiGMan <sigman@ioupg.com>
