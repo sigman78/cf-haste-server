@@ -13,9 +13,36 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok', timestamp: Date.now() });
 });
 
+// Special pages
+const PUBLIC_MD_PAGES: Record<string, string> = {
+  about: "/_about.md"
+};
+
 // Get document by key
 app.get('/documents/:id', async (c) => {
   const key = c.req.param('id');
+
+  // Handle "special" pastes
+  if (key in PUBLIC_MD_PAGES) {
+    try {
+      const aboutUrl = new URL(c.req.url);
+      aboutUrl.pathname = PUBLIC_MD_PAGES[key];
+      const aboutResponse = await c.env.ASSETS.fetch(new Request(aboutUrl.toString(), { method: 'GET' }));
+
+      if (aboutResponse.ok) {
+        const content = await aboutResponse.text();
+        const response: GetResponse = {
+          content,
+          key: key,
+        };
+        return c.json(response);
+      }
+    } catch (error) {
+      console.error('Error loading public file:', error);
+    }
+    return c.json({ message: 'Document not found' }, 404);
+  }
+
   const store = createStore(c.env);
 
   try {
@@ -102,12 +129,6 @@ app.get('/raw/:id', async (c) => {
   }
 });
 
-// Serve about.md as a raw document (for SPA loading)
-app.get('/about.md', async (c) => {
-  // Let ASSETS serve the about.md file
-  return c.env.ASSETS.fetch(c.req.raw);
-});
-
 // Serve static assets from Vite build
 app.get('*', async (c) => {
   const url = new URL(c.req.url);
@@ -117,8 +138,7 @@ app.get('*', async (c) => {
   // serve index.html to let the SPA handle routing
   const isDocumentRoute = path.match(/^\/[a-zA-Z0-9]+(\.[a-z]+)?$/);
   const isAssetRoute = path.startsWith('/assets/') || path.endsWith('.css') ||
-                       path.endsWith('.png') || path.endsWith('.txt') ||
-                       path.endsWith('.md');
+                       path.endsWith('.png') || path.endsWith('.txt');
 
   if (isDocumentRoute && !isAssetRoute) {
     // Rewrite to index.html for SPA routing
