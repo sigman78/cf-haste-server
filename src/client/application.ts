@@ -246,27 +246,37 @@ class Haste {
 
     const ret = await this.doc.load(parts[0], this.lookupTypeByExtension(parts[1]));
 
-    if (ret) {
-      this.code.innerHTML = ret.value;
-      this.setTitle(ret.key);
+  	const applyView = () => {
+      if (ret) {
+        this.code.innerHTML = ret.value;
+        this.setTitle(ret.key);
 
-      let file = '/' + ret.key;
-      if (ret.language) {
-        file += '.' + this.lookupExtensionByType(ret.language);
+        let file = '/' + ret.key;
+        if (ret.language) {
+          file += '.' + this.lookupExtensionByType(ret.language);
+        }
+
+        if (window.location.pathname !== file) {
+          window.history.pushState(null, `${this.appName}-${ret.key}`, file);
+        }
+
+        this.fullKey();
+        this.textarea.value = '';
+        this.textarea.style.display = 'none';
+        this.box.style.display = 'block';
+        this.box.focus();
+      } else {
+        this.newDocument();
       }
-
-      if (window.location.pathname !== file) {
-        window.history.pushState(null, `${this.appName}-${ret.key}`, file);
-      }
-
-      this.fullKey();
-      this.textarea.value = '';
-      this.textarea.style.display = 'none';
-      this.box.style.display = 'block';
-      this.box.focus();
-    } else {
-      this.newDocument();
-    }
+  	};
+    // Now start transition to new view (if capable)
+  	if (!document.startViewTransition) {
+  		applyView();
+  	} else {
+  		await document.startViewTransition(() => {
+  			applyView();
+  		});
+  	}
   }
 
   duplicateDocument(): void {
