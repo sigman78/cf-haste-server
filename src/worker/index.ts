@@ -1,12 +1,8 @@
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 import type { Env, SaveResponse, GetResponse } from '../shared/types';
 import { createStore } from './storage';
 
 const app = new Hono<{ Bindings: Env }>();
-
-// Middleware
-app.use('*', cors());
 
 // Health check
 app.get('/health', (c) => {
