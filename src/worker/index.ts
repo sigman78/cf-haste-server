@@ -132,7 +132,7 @@ app.get('*', async (c) => {
 
   // If path looks like a document key (e.g., /abc123 or /abc123.js),
   // serve index.html to let the SPA handle routing
-  const isDocumentRoute = path.match(/^\/[a-zA-Z0-9]+(\.[a-z]+)?$/);
+  const isDocumentRoute = path.match(/^\/[a-zA-Z0-9-]+(\.[a-zA-Z0-9]+)?$/);
   const isAssetRoute = path.startsWith('/assets/') || path.endsWith('.css') ||
                        path.endsWith('.png') || path.endsWith('.txt');
 

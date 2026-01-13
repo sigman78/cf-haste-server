@@ -49,16 +49,23 @@ export class D1DocumentStore implements DocumentStore {
       .run();
   }
 
-  async generateKey(length: number): Promise<string> {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  async generateKey(length: number, ensureNew: boolean = false): Promise<string> {
+    const keyLength = length > 6 ? length : 6;
+    const consonants = 'bcdfghjklmnpqrstvwxyz';
+    const vowels = 'aeiou';
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
     let attempts = 0;
     const maxAttempts = 10;
 
     while (attempts < maxAttempts) {
       let key = '';
       for (let i = 0; i < length; i++) {
-        key += chars.charAt(Math.floor(Math.random() * chars.length));
+        key += pick((i % 3) == 1 ? vowels : consonants);
+        if (i % 6 == 5) key += "-";
       }
+
+      if (!ensureNew) return key;
 
       // Check if key exists
       const exists = await this.db
