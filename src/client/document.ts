@@ -3,9 +3,9 @@
  *
  * Responsibilities:
  * - Business logic only, no I/O, no DOM
- * - Data: content, title, path, isDirty flag
- * - Operations: getters, setters, serialize, hydrate, reset, markClean
- * - Always reflects "saved state + local edits"
+ * - Data: content, key, language
+ * - Operations: getters, setters, serialize, hydrate, reset
+ * - Lifecycle state managed by AppController
  */
 
 export interface DocumentData {
@@ -18,21 +18,13 @@ export interface DocumentState {
   content: string;
   key?: string;
   language?: string;
-  isDirty: boolean;
-  isLocked: boolean;
 }
 
 export class DocumentModel {
   private state: DocumentState;
-  private savedState: DocumentData;
 
   constructor() {
     this.state = {
-      content: '',
-      isDirty: false,
-      isLocked: false,
-    };
-    this.savedState = {
       content: '',
     };
   }
@@ -50,14 +42,6 @@ export class DocumentModel {
     return this.state.language;
   }
 
-  isDirty(): boolean {
-    return this.state.isDirty;
-  }
-
-  isLocked(): boolean {
-    return this.state.isLocked;
-  }
-
   getState(): Readonly<DocumentState> {
     return { ...this.state };
   }
@@ -65,7 +49,6 @@ export class DocumentModel {
   // Setters
   setContent(content: string): void {
     this.state.content = content;
-    this.state.isDirty = content !== this.savedState.content;
   }
 
   setLanguage(language: string | undefined): void {
@@ -78,23 +61,13 @@ export class DocumentModel {
       content: data.content,
       key: data.key,
       language: data.language,
-      isDirty: false,
-      isLocked: true,
     };
-    this.savedState = { ...data };
   }
 
   // After successful save
-  markClean(key: string, language?: string): void {
+  markSaved(key: string, language?: string): void {
     this.state.key = key;
     this.state.language = language;
-    this.state.isDirty = false;
-    this.state.isLocked = true;
-    this.savedState = {
-      content: this.state.content,
-      key,
-      language,
-    };
   }
 
   // Serialize for save
@@ -105,11 +78,6 @@ export class DocumentModel {
   // Reset to blank
   reset(): void {
     this.state = {
-      content: '',
-      isDirty: false,
-      isLocked: false,
-    };
-    this.savedState = {
       content: '',
     };
   }

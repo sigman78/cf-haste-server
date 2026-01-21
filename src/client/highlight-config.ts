@@ -108,4 +108,127 @@ hljs.registerLanguage('htm', xml);
 hljs.registerLanguage('cc', cpp);
 hljs.registerLanguage('h', cpp);
 
+// Extension to language mapping
+export const extensionMap: Record<string, string> = {
+  // Scripting languages
+  js: 'javascript',
+  ts: 'typescript',
+  py: 'python',
+  rb: 'ruby',
+  pl: 'perl',
+  php: 'php',
+  lua: 'lua',
+  vbs: 'vbscript',
+  bash: 'bash',
+  sh: 'bash',
+  // Compiled languages
+  java: 'java',
+  cpp: 'cpp',
+  cc: 'cpp',
+  c: 'c',
+  h: 'cpp',
+  cs: 'cs',
+  go: 'go',
+  rs: 'rust',
+  rust: 'rust',
+  swift: 'swift',
+  kt: 'kotlin',
+  kotlin: 'kotlin',
+  scala: 'scala',
+  pas: 'delphi',
+  m: 'objectivec',
+  vala: 'vala',
+  // Functional languages
+  erl: 'erlang',
+  hs: 'haskell',
+  lisp: 'lisp',
+  sm: 'smalltalk',
+  // Markup and data formats
+  html: 'xml',
+  htm: 'xml',
+  xml: 'xml',
+  css: 'css',
+  scss: 'scss',
+  json: 'json',
+  yaml: 'yaml',
+  yml: 'yaml',
+  md: 'markdown',
+  tex: 'latex',
+  // Database
+  sql: 'sql',
+  // Configuration and other
+  ini: 'ini',
+  diff: 'diff',
+  dockerfile: 'dockerfile',
+  nginx: 'nginx',
+  txt: '',
+};
+
+/**
+ * Language Utilities
+ */
+
+/**
+ * Get language for file extension
+ */
+export function getLanguageForExtension(ext: string): string | undefined {
+  return extensionMap[ext] || ext;
+}
+
+/**
+ * Get extension for language
+ */
+export function getExtensionForLanguage(language: string): string {
+  for (const [ext, lang] of Object.entries(extensionMap)) {
+    if (lang === language) return ext;
+  }
+  return language;
+}
+
+/**
+ * Auto-detect language from content
+ */
+export function detectLanguage(content: string): string | undefined {
+  try {
+    const result = hljs.highlightAuto(content);
+    return result.language;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Highlight content with optional language
+ */
+export function highlightContent(content: string, language?: string): string {
+  try {
+    if (language === 'txt' || language === '') {
+      return escapeHtml(content);
+    } else if (language) {
+      const result = hljs.highlight(content, { language });
+      return result.value;
+    } else {
+      const result = hljs.highlightAuto(content);
+      return result.value;
+    }
+  } catch (err) {
+    // Fallback on auto
+    try {
+      const result = hljs.highlightAuto(content);
+      return result.value;
+    } catch {
+      return escapeHtml(content);
+    }
+  }
+}
+
+/**
+ * Escape HTML for safe display
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 export default hljs;

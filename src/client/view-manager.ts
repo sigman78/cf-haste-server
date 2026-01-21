@@ -6,70 +6,13 @@
  * - Two render modes:
  *   - renderFullState(): Updates everything including textarea (for loading/reset)
  *   - renderMetadata(): Updates UI except textarea (during editing)
- * - Reads: getContentFromDOM(), getTitleFromDOM()
+ * - Reads: getContentFromDOM()
  * - Event delegation: emits user actions to controller
  * - No business logic
  */
 
 import type { DocumentState } from './document';
-import hljs from './highlight-config';
 import 'highlight.js/styles/base16/solarized-dark.css';
-
-// Extension to language mapping
-const extensionMap: Record<string, string> = {
-  // Scripting languages
-  js: 'javascript',
-  ts: 'typescript',
-  py: 'python',
-  rb: 'ruby',
-  pl: 'perl',
-  php: 'php',
-  lua: 'lua',
-  vbs: 'vbscript',
-  bash: 'bash',
-  sh: 'bash',
-  // Compiled languages
-  java: 'java',
-  cpp: 'cpp',
-  cc: 'cpp',
-  c: 'c',
-  h: 'cpp',
-  cs: 'cs',
-  go: 'go',
-  rs: 'rust',
-  rust: 'rust',
-  swift: 'swift',
-  kt: 'kotlin',
-  kotlin: 'kotlin',
-  scala: 'scala',
-  pas: 'delphi',
-  m: 'objectivec',
-  vala: 'vala',
-  // Functional languages
-  erl: 'erlang',
-  hs: 'haskell',
-  lisp: 'lisp',
-  sm: 'smalltalk',
-  // Markup and data formats
-  html: 'xml',
-  htm: 'xml',
-  xml: 'xml',
-  css: 'css',
-  scss: 'scss',
-  json: 'json',
-  yaml: 'yaml',
-  yml: 'yaml',
-  md: 'markdown',
-  tex: 'latex',
-  // Database
-  sql: 'sql',
-  // Configuration and other
-  ini: 'ini',
-  diff: 'diff',
-  dockerfile: 'dockerfile',
-  nginx: 'nginx',
-  txt: '',
-};
 
 export interface ViewCallbacks {
   onSave: () => void;
@@ -132,15 +75,15 @@ export class ViewManager {
   /**
    * Render full state including textarea (for loading/reset)
    */
-  renderFullState(state: DocumentState, highlightedContent?: string): void {
-    if (state.isLocked && highlightedContent) {
-      // Locked view - show highlighted code
+  renderFullState(state: DocumentState, mode: 'editing' | 'presenting', highlightedContent?: string): void {
+    if (mode === 'presenting' && highlightedContent) {
+      // Presenting view - show highlighted code
       this.code.innerHTML = highlightedContent;
       this.textarea.value = '';
       this.textarea.style.display = 'none';
       this.box.style.display = 'block';
       this.box.focus();
-      this.updateButtons(state);
+      this.updateButtons(state, mode);
       this.updateTitle(state);
     } else {
       // Editing view - show textarea
@@ -148,7 +91,7 @@ export class ViewManager {
       this.textarea.style.display = 'block';
       this.box.style.display = 'none';
       this.textarea.focus();
-      this.updateButtons(state);
+      this.updateButtons(state, mode);
       this.updateTitle(state);
     }
   }
@@ -156,67 +99,13 @@ export class ViewManager {
   /**
    * Render metadata only (during editing - don't touch textarea)
    */
-  renderMetadata(state: DocumentState, highlightedContent?: string): void {
-    if (state.isLocked && highlightedContent) {
-      // Update code view if locked
+  renderMetadata(state: DocumentState, mode: 'editing' | 'presenting', highlightedContent?: string): void {
+    if (mode === 'presenting' && highlightedContent) {
+      // Update code view if presenting
       this.code.innerHTML = highlightedContent;
     }
-    this.updateButtons(state);
+    this.updateButtons(state, mode);
     this.updateTitle(state);
-  }
-
-  /**
-   * Highlight content for display
-   */
-  highlightContent(content: string, language?: string): string {
-    try {
-      if (language === 'txt' || language === '') {
-        return this.escapeHtml(content);
-      } else if (language) {
-        const result = hljs.highlight(content, { language });
-        return result.value;
-      } else {
-        const result = hljs.highlightAuto(content);
-        return result.value;
-      }
-    } catch (err) {
-      // Fallback on auto
-      try {
-        const result = hljs.highlightAuto(content);
-        return result.value;
-      } catch {
-        return this.escapeHtml(content);
-      }
-    }
-  }
-
-  /**
-   * Auto-detect language from content
-   */
-  detectLanguage(content: string): string | undefined {
-    try {
-      const result = hljs.highlightAuto(content);
-      return result.language;
-    } catch {
-      return undefined;
-    }
-  }
-
-  /**
-   * Get extension for language
-   */
-  getExtensionForLanguage(language: string): string {
-    for (const [ext, lang] of Object.entries(extensionMap)) {
-      if (lang === language) return ext;
-    }
-    return language;
-  }
-
-  /**
-   * Get language for extension
-   */
-  getLanguageForExtension(ext: string): string | undefined {
-    return extensionMap[ext] || ext;
   }
 
   /**
@@ -233,7 +122,7 @@ export class ViewManager {
   /**
    * Update button states based on document state
    */
-  private updateButtons(state: DocumentState): void {
+  private updateButtons(state: DocumentState, mode: 'editing' | 'presenting'): void {
     const functions = document.querySelectorAll('#box2 .function');
     functions.forEach((element) => {
       const el = element as HTMLElement;
@@ -248,15 +137,15 @@ export class ViewManager {
       }
       // Save button: enabled when editing and content is not empty
       else if (isSave) {
-        if (!state.isLocked && state.content.trim() !== '') {
+        if (mode === 'editing' && state.content.trim() !== '') {
           el.classList.add('enabled');
         } else {
           el.classList.remove('enabled');
         }
       }
-      // Duplicate and Twitter: enabled when locked
+      // Duplicate and Twitter: enabled when presenting
       else if (isDuplicate || isTwitter) {
-        if (state.isLocked) {
+        if (mode === 'presenting') {
           el.classList.add('enabled');
         } else {
           el.classList.remove('enabled');
@@ -372,14 +261,5 @@ export class ViewManager {
         this.callbacks.onContentInput(this.textarea.value);
       }
     });
-  }
-
-  /**
-   * Escape HTML for safe display
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   }
 }

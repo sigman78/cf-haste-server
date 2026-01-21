@@ -2,7 +2,7 @@
  * AppController - Orchestrator
  *
  * Responsibilities:
- * - Owns document lifecycle state machine: loading | editing | saving
+ * - Owns document lifecycle state machine: loading | editing | presenting | saving
  * - Coordinates all modules
  * - Public API is synchronous
  * - Manages async operations internally with consistent error handling
@@ -13,8 +13,14 @@ import { StorageService } from './storage';
 import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
 import { Router } from './router';
+import {
+  detectLanguage,
+  highlightContent,
+  getExtensionForLanguage,
+  getLanguageForExtension,
+} from './highlight-config';
 
-type DocumentLifecycleState = 'loading' | 'editing' | 'saving';
+type DocumentLifecycleState = 'loading' | 'editing' | 'presenting' | 'saving';
 
 export interface AppControllerOptions {
   appName: string;
@@ -86,7 +92,7 @@ export class AppController {
    */
   private newDocument(pushState: boolean): void {
     // Guard: can't create new while loading/saving
-    if (this.lifecycleState !== 'editing') {
+    if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
       return;
     }
 
@@ -103,7 +109,7 @@ export class AppController {
       }
 
       // Render
-      this.view.renderFullState(this.document.getState());
+      this.view.renderFullState(this.document.getState(), 'editing');
     });
   }
 
@@ -133,21 +139,21 @@ export class AppController {
       const result = await this.storage.save(this.document.serialize());
 
       // Detect language
-      const language = this.view.detectLanguage(content);
+      const language = detectLanguage(content);
 
       // Update model
-      this.document.markClean(result.key, language);
+      this.document.markSaved(result.key, language);
 
       // Highlight content
-      const highlighted = this.view.highlightContent(content, language);
+      const highlighted = highlightContent(content, language);
 
       // Update state
-      this.lifecycleState = 'editing';
+      this.lifecycleState = 'presenting';
 
       // Build path with extension
       let path = result.key;
       if (language) {
-        const ext = this.view.getExtensionForLanguage(language);
+        const ext = getExtensionForLanguage(language);
         path += '.' + ext;
       }
 
@@ -156,14 +162,14 @@ export class AppController {
 
       // Render with transition
       this.transitions.run(() => {
-        this.view.renderFullState(this.document.getState(), highlighted);
+        this.view.renderFullState(this.document.getState(), 'presenting', highlighted);
       });
     } catch (err) {
       console.error('Save failed:', err);
 
       // Fallback: stay in editing mode
       this.lifecycleState = 'editing';
-      this.view.renderMetadata(this.document.getState());
+      this.view.renderMetadata(this.document.getState(), 'editing');
 
       // TODO: Show error to user
       alert('Failed to save document. Please try again.');
@@ -175,7 +181,7 @@ export class AppController {
    */
   private async loadDocumentByPath(path: string): Promise<void> {
     // Guard: can't load while loading/saving
-    if (this.lifecycleState !== 'editing') {
+    if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
       return;
     }
 
@@ -183,7 +189,7 @@ export class AppController {
     const parts = path.split('.', 2);
     const key = parts[0];
     const ext = parts[1];
-    const language = ext ? this.view.getLanguageForExtension(ext) : undefined;
+    const language = ext ? getLanguageForExtension(ext) : undefined;
 
     try {
       // Update state
@@ -200,16 +206,16 @@ export class AppController {
       });
 
       // Highlight content
-      const highlighted = this.view.highlightContent(result.content, language || result.language);
+      const highlighted = highlightContent(result.content, language || result.language);
 
       // Update state
-      this.lifecycleState = 'editing';
+      this.lifecycleState = 'presenting';
 
       // Build path with extension
       const state = this.document.getState();
       let fullPath = state.key!;
       if (state.language) {
-        const ext = this.view.getExtensionForLanguage(state.language);
+        const ext = getExtensionForLanguage(state.language);
         fullPath += '.' + ext;
       }
 
@@ -220,7 +226,7 @@ export class AppController {
 
       // Render with transition
       this.transitions.run(() => {
-        this.view.renderFullState(this.document.getState(), highlighted);
+        this.view.renderFullState(this.document.getState(), 'presenting', highlighted);
       });
     } catch (err) {
       console.error('Load failed:', err);
@@ -229,7 +235,7 @@ export class AppController {
       this.lifecycleState = 'editing';
       this.document.reset();
       this.router.navigate('', true);
-      this.view.renderFullState(this.document.getState());
+      this.view.renderFullState(this.document.getState(), 'editing');
 
       // TODO: Show error to user (optional)
       // alert('Document not found');
@@ -240,7 +246,7 @@ export class AppController {
    * Handle save button/shortcut
    */
   private handleSave(): void {
-    if (this.lifecycleState === 'editing' && !this.document.isLocked()) {
+    if (this.lifecycleState === 'editing') {
       const content = this.view.getContentFromDOM();
       if (content.trim()) {
         this.saveDocument();
@@ -252,7 +258,7 @@ export class AppController {
    * Handle new button/shortcut
    */
   private handleNew(): void {
-    if (this.lifecycleState === 'editing') {
+    if (this.lifecycleState === 'editing' || this.lifecycleState === 'presenting') {
       this.newDocument(true);
     }
   }
@@ -261,7 +267,7 @@ export class AppController {
    * Handle duplicate button/shortcut
    */
   private handleDuplicate(): void {
-    if (this.lifecycleState === 'editing' && this.document.isLocked()) {
+    if (this.lifecycleState === 'presenting') {
       const content = this.document.duplicate();
 
       this.transitions.run(() => {
@@ -269,11 +275,14 @@ export class AppController {
         this.document.reset();
         this.document.setContent(content);
 
+        // Update state
+        this.lifecycleState = 'editing';
+
         // Navigate to home
         this.router.navigate('', true);
 
         // Render with content
-        this.view.renderFullState(this.document.getState());
+        this.view.renderFullState(this.document.getState(), 'editing');
       });
     }
   }
@@ -282,7 +291,7 @@ export class AppController {
    * Handle twitter button/shortcut
    */
   private handleTwitter(): void {
-    if (this.lifecycleState === 'editing' && this.document.isLocked()) {
+    if (this.lifecycleState === 'presenting') {
       window.open('https://twitter.com/share?url=' + encodeURI(window.location.href));
     }
   }
@@ -292,10 +301,10 @@ export class AppController {
    */
   private handleContentInput(content: string): void {
     // During editing phase, textarea owns content
-    if (this.lifecycleState === 'editing' && !this.document.isLocked()) {
+    if (this.lifecycleState === 'editing') {
       this.document.setContent(content);
       // Update button states
-      this.view.renderMetadata(this.document.getState());
+      this.view.renderMetadata(this.document.getState(), 'editing');
     }
   }
 }
