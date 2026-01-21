@@ -53,7 +53,7 @@ export class D1DocumentStore implements DocumentStore {
     const keyLength = length > 6 ? length : 6;
     const consonants = 'bcdfghjklmnpqrstvwxyz';
     const vowels = 'aeiou';
-    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const pick = (arr: string) => arr[Math.floor(Math.random() * arr.length)];
 
     let attempts = 0;
     const maxAttempts = 10;
