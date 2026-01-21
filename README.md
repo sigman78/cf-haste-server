@@ -17,9 +17,10 @@ Modern, cloud-native pastebin server running on Cloudflare's global edge network
 Haste is an open-source pastebin that makes sharing code and text incredibly simple. Type, save, share - that's it.
 
 **Major design objectives:**
-* Be really pretty
-* Be really simple
-* Be easy to set up and use
+
+- Be really pretty
+- Be really simple
+- Be easy to set up and use
 
 ## This Modernized Version
 
@@ -49,14 +50,14 @@ Visit `http://localhost:8787` and start pasting!
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|-----------|
-| **Runtime** | Cloudflare Workers |
-| **Backend** | Hono (lightweight web framework) |
-| **Database** | D1 (Cloudflare's SQLite) |
-| **Frontend** | TypeScript + Vite |
-| **Build** | Vite 6.x |
-| **Deploy** | Wrangler CLI |
+| Component    | Technology                       |
+| ------------ | -------------------------------- |
+| **Runtime**  | Cloudflare Workers               |
+| **Backend**  | Hono (lightweight web framework) |
+| **Database** | D1 (Cloudflare's SQLite)         |
+| **Frontend** | TypeScript + Vite                |
+| **Build**    | Vite 6.x                         |
+| **Deploy**   | Wrangler CLI                     |
 
 ## Testing
 
@@ -73,30 +74,34 @@ npm run db:query "SELECT * FROM documents"
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start local development server |
-| `npm run build` | Build frontend assets |
-| `npm run deploy` | Build and deploy to Cloudflare |
-| `npm test` | Run API test suite |
-| `npm run db:migrate:local` | Run database migrations locally |
-| `npm run db:migrate:remote` | Run migrations in production |
-| `npm run db:inspect` | View recent documents in database |
+| Command                     | Description                       |
+| --------------------------- | --------------------------------- |
+| `npm run dev`               | Start local development server    |
+| `npm run build`             | Build frontend assets             |
+| `npm run deploy`            | Build and deploy to Cloudflare    |
+| `npm test`                  | Run API test suite                |
+| `npm run db:migrate:local`  | Run database migrations locally   |
+| `npm run db:migrate:remote` | Run migrations in production      |
+| `npm run db:inspect`        | View recent documents in database |
 
 ## Deployment
 
 ### Local Development
+
 Already set up! Just run `npm run dev`.
 
 ### Production Deployment
 
 1. **Create D1 database:**
+
    ```bash
    npm run db:create
    ```
+
    Update `wrangler.toml` with the returned `database_id`
 
 2. **Run migrations:**
+
    ```bash
    npm run db:migrate:remote
    ```
@@ -158,6 +163,7 @@ This version is API-compatible but uses different infrastructure:
 - **Dependencies**: Modern packages, no legacy dependencies
 
 To migrate data, export from your old storage and import to D1 using:
+
 ```bash
 npm run db:query "INSERT INTO documents (id, content, created_at, expires_at) VALUES (?, ?, ?, ?)"
 ```
@@ -172,6 +178,7 @@ npm run db:query "INSERT INTO documents (id, content, created_at, expires_at) VA
 ## Cost
 
 Cloudflare Workers Free Tier includes:
+
 - 100,000 requests/day
 - 10ms CPU time per request
 - 5GB D1 storage
@@ -185,6 +192,7 @@ Perfect for personal use or small teams!
 This is a modernized fork. For issues specific to this Cloudflare version, please open an issue in this repository.
 
 For the original Haste project:
+
 - [haste-server](https://github.com/seejohnrun/haste-server) - Original server
 - [haste-client](https://github.com/seejohnrun/haste-client) - CLI client
 
@@ -194,4 +202,3 @@ MIT License
 
 Original Haste by [John Crepezzi](https://github.com/seejohnrun)
 Cloudflare Workers modernization - 2026
-

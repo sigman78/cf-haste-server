@@ -23,10 +23,7 @@ export class D1DocumentStore implements DocumentStore {
     }
 
     // Update view count
-    await this.db
-      .prepare('UPDATE documents SET views = views + 1 WHERE id = ?')
-      .bind(key)
-      .run();
+    await this.db.prepare('UPDATE documents SET views = views + 1 WHERE id = ?').bind(key).run();
 
     return result.content;
   }
@@ -34,7 +31,7 @@ export class D1DocumentStore implements DocumentStore {
   async set(key: string, content: string, expireDays?: number): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     const days = expireDays ?? this.defaultExpireDays;
-    const expiresAt = days > 0 ? now + (days * 24 * 60 * 60) : null;
+    const expiresAt = days > 0 ? now + days * 24 * 60 * 60 : null;
 
     await this.db
       .prepare(
@@ -61,8 +58,8 @@ export class D1DocumentStore implements DocumentStore {
     while (attempts < maxAttempts) {
       let key = '';
       for (let i = 0; i < length; i++) {
-        key += pick((i % 3) == 1 ? vowels : consonants);
-        if (i % 6 == 5) key += "-";
+        key += pick(i % 3 == 1 ? vowels : consonants);
+        if (i % 6 == 5) key += '-';
       }
 
       if (!ensureNew) return key;

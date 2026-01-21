@@ -40,7 +40,7 @@ function section(title) {
 }
 
 async function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function checkServerRunning() {
@@ -281,7 +281,7 @@ async function runTests() {
     promises.push(testCreateDocument());
   }
   const results = await Promise.all(promises);
-  const successCount = results.filter(r => r !== null).length;
+  const successCount = results.filter((r) => r !== null).length;
   log(colors.blue, '→', `Created ${successCount}/5 documents concurrently`);
 
   // Test 9: Large document

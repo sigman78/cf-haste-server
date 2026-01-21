@@ -128,4 +128,3 @@ export class DocumentModel {
     return this.state.content;
   }
 }
-

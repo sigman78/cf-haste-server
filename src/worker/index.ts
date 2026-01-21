@@ -11,7 +11,7 @@ app.get('/health', (c) => {
 
 // Special pages
 const PUBLIC_MD_PAGES: Record<string, string> = {
-  about: "/_about.md"
+  about: '/_about.md',
 };
 
 // Get document by key
@@ -23,7 +23,9 @@ app.get('/documents/:id', async (c) => {
     try {
       const aboutUrl = new URL(c.req.url);
       aboutUrl.pathname = PUBLIC_MD_PAGES[key];
-      const aboutResponse = await c.env.ASSETS.fetch(new Request(aboutUrl.toString(), { method: 'GET' }));
+      const aboutResponse = await c.env.ASSETS.fetch(
+        new Request(aboutUrl.toString(), { method: 'GET' })
+      );
 
       if (aboutResponse.ok) {
         const content = await aboutResponse.text();
@@ -83,10 +85,7 @@ app.post('/documents', async (c) => {
     }
 
     if (content.length > maxSize) {
-      return c.json(
-        { message: `Document exceeds maximum size of ${maxSize} bytes` },
-        400
-      );
+      return c.json({ message: `Document exceeds maximum size of ${maxSize} bytes` }, 400);
     }
 
     // Generate unique key and save
@@ -133,8 +132,11 @@ app.get('*', async (c) => {
   // If path looks like a document key (e.g., /abc123 or /abc123.js),
   // serve index.html to let the SPA handle routing
   const isDocumentRoute = path.match(/^\/[a-zA-Z0-9-]+(\.[a-zA-Z0-9]+)?$/);
-  const isAssetRoute = path.startsWith('/assets/') || path.endsWith('.css') ||
-                       path.endsWith('.png') || path.endsWith('.txt');
+  const isAssetRoute =
+    path.startsWith('/assets/') ||
+    path.endsWith('.css') ||
+    path.endsWith('.png') ||
+    path.endsWith('.txt');
 
   if (isDocumentRoute && !isAssetRoute) {
     // Rewrite to index.html for SPA routing
