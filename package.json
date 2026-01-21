@@ -1,48 +1,57 @@
 {
-	"name": "haste",
-	"version": "1.0.0",
-	"private": true,
-	"type": "module",
-	"description": "Modern Haste pastebin server on Cloudflare Workers",
-	"keywords": [
-		"paste",
-		"pastebin",
-		"cloudflare",
-		"workers",
-		"d1"
-	],
-	"author": {
-		"name": "John Crepezzi",
-		"email": "john.crepezzi@gmail.com",
-		"url": "http://seejohncode.com/"
-	},
-	"scripts": {
-		"dev": "wrangler dev",
-		"build": "vite build",
-		"deploy": "npm run build && wrangler deploy",
-		"preview": "wrangler dev --remote",
-		"db:create": "wrangler d1 create haste-db",
-		"db:migrate:local": "wrangler d1 migrations apply haste-db --local",
-		"db:migrate:remote": "wrangler d1 migrations apply haste-db --remote",
-		"db:query": "wrangler d1 execute haste-db --local --command",
-		"db:inspect": "wrangler d1 execute haste-db --local --command \"SELECT id, LENGTH(content) as size, views, datetime(created_at, 'unixepoch') as created FROM documents ORDER BY created_at DESC LIMIT 20\"",
-		"type-check": "tsc --noEmit",
-		"test": "node test/api.test.mjs",
-		"test:bash": "./test-api.sh"
-	},
-	"dependencies": {
-		"highlight.js": "^11.10.0",
-		"hono": "^4.6.3",
-		"lucide": "^0.562.0"
-	},
-	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20241218.0",
-		"@types/node": "^22.10.2",
-		"typescript": "^5.7.2",
-		"vite": "^6.0.3",
-		"wrangler": "^4.58.0"
-	},
-	"engines": {
-		"node": ">=18.0.0"
-	}
+  "name": "haste",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Modern Haste pastebin server on Cloudflare Workers",
+  "keywords": [
+    "paste",
+    "pastebin",
+    "cloudflare",
+    "workers",
+    "d1"
+  ],
+  "author": {
+    "name": "John Crepezzi",
+    "email": "john.crepezzi@gmail.com",
+    "url": "http://seejohncode.com/"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "vite build",
+    "deploy": "npm run build && wrangler deploy",
+    "preview": "wrangler dev --remote",
+    "db:create": "wrangler d1 create haste-db",
+    "db:migrate:local": "wrangler d1 migrations apply haste-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply haste-db --remote",
+    "db:query": "wrangler d1 execute haste-db --local --command",
+    "db:inspect": "wrangler d1 execute haste-db --local --command \"SELECT id, LENGTH(content) as size, views, datetime(created_at, 'unixepoch') as created FROM documents ORDER BY created_at DESC LIMIT 20\"",
+    "type-check": "tsc --noEmit",
+    "test": "node test/api.test.mjs",
+    "test:bash": "./test-api.sh",
+    "format": "prettier --write \"**/*.{ts,js,mjs,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,json,md}\"",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "highlight.js": "^11.10.0",
+    "hono": "^4.6.3",
+    "lucide": "^0.562.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "@types/node": "^22.10.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "wrangler": "^4.58.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs,json,md}": "prettier --write"
+  }
 }

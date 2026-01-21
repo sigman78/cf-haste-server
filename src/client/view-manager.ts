@@ -76,7 +76,11 @@ export class ViewManager {
   /**
    * Render full state including textarea (for loading/reset)
    */
-  renderFullState(state: DocumentState, mode: 'editing' | 'presenting', highlightedContent?: string): void {
+  renderFullState(
+    state: DocumentState,
+    mode: 'editing' | 'presenting',
+    highlightedContent?: string
+  ): void {
     if (mode === 'presenting' && highlightedContent) {
       // Presenting view - show highlighted code
       this.code.innerHTML = highlightedContent;
@@ -100,7 +104,11 @@ export class ViewManager {
   /**
    * Render metadata only (during editing - don't touch textarea)
    */
-  renderMetadata(state: DocumentState, mode: 'editing' | 'presenting', highlightedContent?: string): void {
+  renderMetadata(
+    state: DocumentState,
+    mode: 'editing' | 'presenting',
+    highlightedContent?: string
+  ): void {
     if (mode === 'presenting' && highlightedContent) {
       // Update code view if presenting
       this.code.innerHTML = highlightedContent;
@@ -160,15 +168,30 @@ export class ViewManager {
    */
   private setupButtons(): void {
     const buttons = [
-      { selector: '.save', action: () => this.callbacks?.onSave(), label: 'Save', shortcut: 'control + s' },
-      { selector: '.new', action: () => this.callbacks?.onNew(), label: 'New', shortcut: 'control + n' },
+      {
+        selector: '.save',
+        action: () => this.callbacks?.onSave(),
+        label: 'Save',
+        shortcut: 'control + s',
+      },
+      {
+        selector: '.new',
+        action: () => this.callbacks?.onNew(),
+        label: 'New',
+        shortcut: 'control + n',
+      },
       {
         selector: '.duplicate',
         action: () => this.callbacks?.onDuplicate(),
         label: 'Duplicate & Edit',
         shortcut: 'control + d',
       },
-      { selector: '.twitter', action: () => this.callbacks?.onTwitter(), label: 'Twitter', shortcut: 'control + t' },
+      {
+        selector: '.twitter',
+        action: () => this.callbacks?.onTwitter(),
+        label: 'Twitter',
+        shortcut: 'control + t',
+      },
     ];
 
     buttons.forEach(({ selector, action, label, shortcut }) => {
@@ -248,7 +271,9 @@ export class ViewManager {
         const scrollTop = this.textarea.scrollTop;
 
         this.textarea.value =
-          this.textarea.value.substring(0, startPos) + myValue + this.textarea.value.substring(endPos);
+          this.textarea.value.substring(0, startPos) +
+          myValue +
+          this.textarea.value.substring(endPos);
 
         this.textarea.selectionStart = startPos + myValue.length;
         this.textarea.selectionEnd = startPos + myValue.length;
