@@ -12,6 +12,7 @@
  */
 
 import type { DocumentState } from './document';
+import { isLoaded } from './document';
 import 'highlight.js/styles/base16/solarized-dark.css';
 
 export interface ViewCallbacks {
@@ -112,7 +113,7 @@ export class ViewManager {
    * Update document title
    */
   private updateTitle(state: DocumentState): void {
-    if (state.key) {
+    if (isLoaded(state)) {
       document.title = `${this.appName} - ${state.key}`;
     } else {
       document.title = this.appName;

@@ -8,7 +8,7 @@
  * - Manages async operations internally with consistent error handling
  */
 
-import { DocumentModel } from './document';
+import { DocumentModel, isLoaded } from './document';
 import { StorageService } from './storage';
 import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
@@ -213,15 +213,17 @@ export class AppController {
 
       // Build path with extension
       const state = this.document.getState();
-      let fullPath = state.key!;
-      if (state.language) {
-        const ext = getExtensionForLanguage(state.language);
-        fullPath += '.' + ext;
-      }
+      if (isLoaded(state)) {
+        let fullPath = state.key;
+        if (state.language) {
+          const ext = getExtensionForLanguage(state.language);
+          fullPath += '.' + ext;
+        }
 
-      // Update router if path doesn't match
-      if (path !== fullPath) {
-        this.router.navigate(fullPath, true);
+        // Update router if path doesn't match
+        if (path !== fullPath) {
+          this.router.navigate(fullPath, true);
+        }
       }
 
       // Render with transition
