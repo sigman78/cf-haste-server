@@ -14,7 +14,6 @@ import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
 import { Router } from './router';
 import {
-  detectLanguage,
   highlightContent,
   getExtensionForLanguage,
   getLanguageForExtension,
@@ -138,14 +137,11 @@ export class AppController {
       // Perform save (async)
       const result = await this.storage.save(this.document.serialize());
 
-      // Detect language
-      const language = detectLanguage(content);
+      // Highlight content and detect language in a single pass
+      const { highlighted, language } = highlightContent(content);
 
       // Update model
       this.document.markSaved(result.key, language);
-
-      // Highlight content
-      const highlighted = highlightContent(content, language);
 
       // Update state
       this.lifecycleState = 'presenting';
@@ -198,15 +194,15 @@ export class AppController {
       // Perform load (async)
       const result = await this.storage.load(key);
 
-      // Update model
+      // Highlight content (with language hint if available)
+      const highlightResult = highlightContent(result.content, language || result.language);
+
+      // Update model with the final language (detected or provided)
       this.document.hydrate({
         content: result.content,
         key: result.key,
-        language: language || result.language,
+        language: highlightResult.language || language || result.language,
       });
-
-      // Highlight content
-      const highlighted = highlightContent(result.content, language || result.language);
 
       // Update state
       this.lifecycleState = 'presenting';
@@ -228,7 +224,11 @@ export class AppController {
 
       // Render with transition
       this.transitions.run(() => {
-        this.view.renderFullState(this.document.getState(), 'presenting', highlighted);
+        this.view.renderFullState(
+          this.document.getState(),
+          'presenting',
+          highlightResult.highlighted
+        );
       });
     } catch (err) {
       console.error('Load failed:', err);
