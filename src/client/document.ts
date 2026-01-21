@@ -8,16 +8,19 @@
  * - Lifecycle state managed by AppController
  */
 
-export interface DocumentData {
-  content: string;
+/**
+ * Document metadata (key and language)
+ */
+export interface DocumentMetaState {
   key?: string;
   language?: string;
 }
 
-export interface DocumentState {
+/**
+ * Full document state (metadata + content)
+ */
+export interface DocumentState extends DocumentMetaState {
   content: string;
-  key?: string;
-  language?: string;
 }
 
 export class DocumentModel {
@@ -56,7 +59,7 @@ export class DocumentModel {
   }
 
   // Load from external data (after fetch)
-  hydrate(data: DocumentData): void {
+  hydrate(data: DocumentState): void {
     this.state = {
       content: data.content,
       key: data.key,
