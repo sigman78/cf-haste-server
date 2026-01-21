@@ -104,7 +104,7 @@ export class AppController {
 
       // Update router
       if (pushState) {
-        this.router.navigate('', true);
+        this.router.navigate('', 'push');
       }
 
       // Render
@@ -154,7 +154,7 @@ export class AppController {
       }
 
       // Update router
-      this.router.navigate(path, true);
+      this.router.navigate(path, 'push');
 
       // Render with transition
       this.transitions.run(() => {
@@ -218,7 +218,7 @@ export class AppController {
 
         // Update router if path doesn't match
         if (path !== fullPath) {
-          this.router.navigate(fullPath, true);
+          this.router.navigate(fullPath, 'push');
         }
       }
 
@@ -236,7 +236,7 @@ export class AppController {
       // Fallback: show new document
       this.lifecycleState = 'editing';
       this.document.reset();
-      this.router.navigate('', true);
+      this.router.navigate('', 'push');
       this.view.renderFullState(this.document.getState(), 'editing');
 
       // TODO: Show error to user (optional)
@@ -280,8 +280,8 @@ export class AppController {
         // Update state
         this.lifecycleState = 'editing';
 
-        // Navigate to home
-        this.router.navigate('', true);
+        // Navigate to home (replace current history entry to avoid empty intermediate state)
+        this.router.navigate('', 'replace');
 
         // Render with content
         this.view.renderFullState(this.document.getState(), 'editing');

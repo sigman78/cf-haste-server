@@ -9,6 +9,13 @@
 
 export type RouteHandler = (path: string) => void;
 
+/**
+ * Navigation mode determines how the router handles browser history:
+ * - 'push': Add new entry to browser history (default for user actions)
+ * - 'replace': Replace current history entry without adding new one (use for state transitions that shouldn't create back-button steps)
+ */
+export type NavigationMode = 'push' | 'replace';
+
 export class Router {
   private handler?: RouteHandler;
   private appName: string;
@@ -36,19 +43,24 @@ export class Router {
   /**
    * Navigate to a new path
    * @param path - Path to navigate to (without leading slash, or empty for home)
-   * @param pushState - Whether to push to history (false for initial load or back/forward)
+   * @param mode - Navigation mode ('push' or 'replace')
    */
-  navigate(path: string, pushState = true): void {
+  navigate(path: string, mode: NavigationMode = 'push'): void {
     const fullPath = path ? `/${path}` : '/';
+    const title = path ? `${this.appName}-${path.split('.')[0]}` : this.appName;
 
-    if (pushState && window.location.pathname !== fullPath) {
-      const title = path ? `${this.appName}-${path.split('.')[0]}` : this.appName;
-      window.history.pushState(null, title, fullPath);
+    if (window.location.pathname === fullPath) {
+      return;
     }
 
-    // Don't call handler if we're just updating URL
-    if (!pushState && this.handler) {
-      this.handler(path);
+    switch (mode) {
+      case 'push':
+        window.history.pushState(null, title, fullPath);
+        break;
+
+      case 'replace':
+        window.history.replaceState(null, title, fullPath);
+        break;
     }
   }
 
@@ -58,9 +70,7 @@ export class Router {
   private initPopStateListener(): void {
     window.addEventListener('popstate', () => {
       const path = this.getCurrentPath();
-      if (this.handler) {
-        this.handler(path);
-      }
+      this.handler?.(path);
     });
   }
 
@@ -69,8 +79,6 @@ export class Router {
    */
   init(): void {
     const path = this.getCurrentPath();
-    if (this.handler) {
-      this.handler(path);
-    }
+    this.handler?.(path);
   }
 }
