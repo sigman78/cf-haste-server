@@ -69,7 +69,7 @@ textarea {
 	mask: url('logo.svg') no-repeat center;
   	mask-size: contain;
 	background-color: #fdf6e3;
-  	transition: background-color 0.3s ease;
+  	transition: background-color 0.15s ease;
 }
 
 #box1 a.logo:hover {
