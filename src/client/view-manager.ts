@@ -1,0 +1,385 @@
+/**
+ * ViewManager (DOM) - Pure Sync DOM Operations
+ *
+ * Responsibilities:
+ * - Owns specific DOM subtree
+ * - Two render modes:
+ *   - renderFullState(): Updates everything including textarea (for loading/reset)
+ *   - renderMetadata(): Updates UI except textarea (during editing)
+ * - Reads: getContentFromDOM(), getTitleFromDOM()
+ * - Event delegation: emits user actions to controller
+ * - No business logic
+ */
+
+import type { DocumentState } from './document';
+import hljs from './highlight-config';
+import 'highlight.js/styles/base16/solarized-dark.css';
+
+// Extension to language mapping
+const extensionMap: Record<string, string> = {
+  // Scripting languages
+  js: 'javascript',
+  ts: 'typescript',
+  py: 'python',
+  rb: 'ruby',
+  pl: 'perl',
+  php: 'php',
+  lua: 'lua',
+  vbs: 'vbscript',
+  bash: 'bash',
+  sh: 'bash',
+  // Compiled languages
+  java: 'java',
+  cpp: 'cpp',
+  cc: 'cpp',
+  c: 'c',
+  h: 'cpp',
+  cs: 'cs',
+  go: 'go',
+  rs: 'rust',
+  rust: 'rust',
+  swift: 'swift',
+  kt: 'kotlin',
+  kotlin: 'kotlin',
+  scala: 'scala',
+  pas: 'delphi',
+  m: 'objectivec',
+  vala: 'vala',
+  // Functional languages
+  erl: 'erlang',
+  hs: 'haskell',
+  lisp: 'lisp',
+  sm: 'smalltalk',
+  // Markup and data formats
+  html: 'xml',
+  htm: 'xml',
+  xml: 'xml',
+  css: 'css',
+  scss: 'scss',
+  json: 'json',
+  yaml: 'yaml',
+  yml: 'yaml',
+  md: 'markdown',
+  tex: 'latex',
+  // Database
+  sql: 'sql',
+  // Configuration and other
+  ini: 'ini',
+  diff: 'diff',
+  dockerfile: 'dockerfile',
+  nginx: 'nginx',
+  txt: '',
+};
+
+export interface ViewCallbacks {
+  onSave: () => void;
+  onNew: () => void;
+  onDuplicate: () => void;
+  onTwitter: () => void;
+  onContentInput: (content: string) => void;
+}
+
+export interface RenderOptions {
+  appName: string;
+  enableTwitter: boolean;
+}
+
+export class ViewManager {
+  private textarea: HTMLTextAreaElement;
+  private box: HTMLElement;
+  private code: HTMLElement;
+  private appName: string;
+  private callbacks?: ViewCallbacks;
+
+  constructor(options: RenderOptions) {
+    this.appName = options.appName;
+    this.textarea = document.querySelector('textarea')!;
+    this.box = document.getElementById('box')!;
+    this.code = document.querySelector('#box code')!;
+
+    // Hide twitter button if disabled
+    if (!options.enableTwitter) {
+      const twitterBtn = document.querySelector('#box2 .twitter') as HTMLElement;
+      if (twitterBtn) {
+        twitterBtn.style.display = 'none';
+      }
+    }
+  }
+
+  /**
+   * Set event callbacks
+   */
+  setCallbacks(callbacks: ViewCallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  /**
+   * Initialize event listeners
+   */
+  init(): void {
+    this.setupButtons();
+    this.setupKeyboardShortcuts();
+    this.setupTextareaListeners();
+  }
+
+  /**
+   * Get current content from textarea
+   */
+  getContentFromDOM(): string {
+    return this.textarea.value;
+  }
+
+  /**
+   * Render full state including textarea (for loading/reset)
+   */
+  renderFullState(state: DocumentState, highlightedContent?: string): void {
+    if (state.isLocked && highlightedContent) {
+      // Locked view - show highlighted code
+      this.code.innerHTML = highlightedContent;
+      this.textarea.value = '';
+      this.textarea.style.display = 'none';
+      this.box.style.display = 'block';
+      this.box.focus();
+      this.updateButtons(state);
+      this.updateTitle(state);
+    } else {
+      // Editing view - show textarea
+      this.textarea.value = state.content;
+      this.textarea.style.display = 'block';
+      this.box.style.display = 'none';
+      this.textarea.focus();
+      this.updateButtons(state);
+      this.updateTitle(state);
+    }
+  }
+
+  /**
+   * Render metadata only (during editing - don't touch textarea)
+   */
+  renderMetadata(state: DocumentState, highlightedContent?: string): void {
+    if (state.isLocked && highlightedContent) {
+      // Update code view if locked
+      this.code.innerHTML = highlightedContent;
+    }
+    this.updateButtons(state);
+    this.updateTitle(state);
+  }
+
+  /**
+   * Highlight content for display
+   */
+  highlightContent(content: string, language?: string): string {
+    try {
+      if (language === 'txt' || language === '') {
+        return this.escapeHtml(content);
+      } else if (language) {
+        const result = hljs.highlight(content, { language });
+        return result.value;
+      } else {
+        const result = hljs.highlightAuto(content);
+        return result.value;
+      }
+    } catch (err) {
+      // Fallback on auto
+      try {
+        const result = hljs.highlightAuto(content);
+        return result.value;
+      } catch {
+        return this.escapeHtml(content);
+      }
+    }
+  }
+
+  /**
+   * Auto-detect language from content
+   */
+  detectLanguage(content: string): string | undefined {
+    try {
+      const result = hljs.highlightAuto(content);
+      return result.language;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Get extension for language
+   */
+  getExtensionForLanguage(language: string): string {
+    for (const [ext, lang] of Object.entries(extensionMap)) {
+      if (lang === language) return ext;
+    }
+    return language;
+  }
+
+  /**
+   * Get language for extension
+   */
+  getLanguageForExtension(ext: string): string | undefined {
+    return extensionMap[ext] || ext;
+  }
+
+  /**
+   * Update document title
+   */
+  private updateTitle(state: DocumentState): void {
+    if (state.key) {
+      document.title = `${this.appName} - ${state.key}`;
+    } else {
+      document.title = this.appName;
+    }
+  }
+
+  /**
+   * Update button states based on document state
+   */
+  private updateButtons(state: DocumentState): void {
+    const functions = document.querySelectorAll('#box2 .function');
+    functions.forEach((element) => {
+      const el = element as HTMLElement;
+      const isNew = el.classList.contains('new');
+      const isSave = el.classList.contains('save');
+      const isDuplicate = el.classList.contains('duplicate');
+      const isTwitter = el.classList.contains('twitter');
+
+      // New button: always enabled
+      if (isNew) {
+        el.classList.add('enabled');
+      }
+      // Save button: enabled when editing and content is not empty
+      else if (isSave) {
+        if (!state.isLocked && state.content.trim() !== '') {
+          el.classList.add('enabled');
+        } else {
+          el.classList.remove('enabled');
+        }
+      }
+      // Duplicate and Twitter: enabled when locked
+      else if (isDuplicate || isTwitter) {
+        if (state.isLocked) {
+          el.classList.add('enabled');
+        } else {
+          el.classList.remove('enabled');
+        }
+      }
+    });
+  }
+
+  /**
+   * Setup button event listeners
+   */
+  private setupButtons(): void {
+    const buttons = [
+      { selector: '.save', action: () => this.callbacks?.onSave(), label: 'Save', shortcut: 'control + s' },
+      { selector: '.new', action: () => this.callbacks?.onNew(), label: 'New', shortcut: 'control + n' },
+      {
+        selector: '.duplicate',
+        action: () => this.callbacks?.onDuplicate(),
+        label: 'Duplicate & Edit',
+        shortcut: 'control + d',
+      },
+      { selector: '.twitter', action: () => this.callbacks?.onTwitter(), label: 'Twitter', shortcut: 'control + t' },
+    ];
+
+    buttons.forEach(({ selector, action, label, shortcut }) => {
+      const element = document.querySelector(`#box2 ${selector}`) as HTMLElement;
+      if (!element) return;
+
+      // Click handler
+      element.addEventListener('click', (evt) => {
+        evt.preventDefault();
+        if (element.classList.contains('enabled')) {
+          action();
+        }
+      });
+
+      // Hover handlers for tooltip
+      element.addEventListener('mouseenter', () => {
+        const labelEl = document.querySelector('#box3 .label') as HTMLElement;
+        const shortcutEl = document.querySelector('#box3 .shortcut') as HTMLElement;
+        const box3 = document.getElementById('box3')!;
+        const pointer = document.getElementById('pointer')!;
+
+        labelEl.textContent = label;
+        shortcutEl.textContent = shortcut;
+        box3.style.display = 'block';
+        element.appendChild(pointer);
+        pointer.style.display = 'block';
+      });
+
+      element.addEventListener('mouseleave', () => {
+        const box3 = document.getElementById('box3')!;
+        const pointer = document.getElementById('pointer')!;
+        box3.style.display = 'none';
+        pointer.style.display = 'none';
+      });
+    });
+  }
+
+  /**
+   * Setup keyboard shortcuts
+   */
+  private setupKeyboardShortcuts(): void {
+    document.body.addEventListener('keydown', (evt) => {
+      // Ctrl+S or Ctrl+L: Save
+      if (evt.ctrlKey && (evt.keyCode === 76 || evt.keyCode === 83)) {
+        evt.preventDefault();
+        this.callbacks?.onSave();
+      }
+      // Ctrl+N: New
+      else if (evt.ctrlKey && evt.keyCode === 78) {
+        evt.preventDefault();
+        this.callbacks?.onNew();
+      }
+      // Ctrl+D: Duplicate
+      else if (evt.ctrlKey && evt.keyCode === 68) {
+        evt.preventDefault();
+        this.callbacks?.onDuplicate();
+      }
+      // Ctrl+T: Twitter
+      else if (evt.ctrlKey && evt.keyCode === 84) {
+        evt.preventDefault();
+        this.callbacks?.onTwitter();
+      }
+    });
+  }
+
+  /**
+   * Setup textarea event listeners
+   */
+  private setupTextareaListeners(): void {
+    // Tab key: insert 2 spaces
+    this.textarea.addEventListener('keydown', (evt) => {
+      if (evt.keyCode === 9) {
+        evt.preventDefault();
+        const myValue = '  ';
+        const startPos = this.textarea.selectionStart;
+        const endPos = this.textarea.selectionEnd;
+        const scrollTop = this.textarea.scrollTop;
+
+        this.textarea.value =
+          this.textarea.value.substring(0, startPos) + myValue + this.textarea.value.substring(endPos);
+
+        this.textarea.selectionStart = startPos + myValue.length;
+        this.textarea.selectionEnd = startPos + myValue.length;
+        this.textarea.scrollTop = scrollTop;
+      }
+    });
+
+    // Input event: notify controller of content changes
+    this.textarea.addEventListener('input', () => {
+      if (this.callbacks?.onContentInput) {
+        this.callbacks.onContentInput(this.textarea.value);
+      }
+    });
+  }
+
+  /**
+   * Escape HTML for safe display
+   */
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+}
