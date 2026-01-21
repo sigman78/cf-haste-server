@@ -186,49 +186,54 @@ export function getExtensionForLanguage(language: string): string {
 }
 
 /**
- * Auto-detect language from content
+ * Result of highlighting operation
  */
-export function detectLanguage(content: string): string | undefined {
-  try {
-    const result = hljs.highlightAuto(content);
-    return result.language;
-  } catch {
-    return undefined;
-  }
+export interface HighlightResult {
+  highlighted: string;
+  language: string | undefined;
 }
 
 /**
- * Highlight content with optional language
+ * Highlight content with optional language hint
+ * Returns both highlighted content and detected/used language
+ * This performs highlighting in a single pass to avoid duplicate work
  */
-export function highlightContent(content: string, language?: string): string {
-  try {
-    if (language === 'txt' || language === '') {
-      return escapeHtml(content);
-    } else if (language) {
-      const result = hljs.highlight(content, { language });
-      return result.value;
-    } else {
-      const result = hljs.highlightAuto(content);
-      return result.value;
-    }
-  } catch (err) {
-    // Fallback on auto
-    try {
-      const result = hljs.highlightAuto(content);
-      return result.value;
-    } catch {
-      return escapeHtml(content);
-    }
+export function highlightContent(content: string, language?: string): HighlightResult {
+  // Plain text - no highlighting needed
+  if (language === 'txt' || language === '') {
+    return {
+      highlighted: escapeHtml(content),
+      language: undefined,
+    };
   }
+
+  // Language specified - use it directly
+  if (language) {
+    const result = hljs.highlight(content, { language });
+    return {
+      highlighted: result.value,
+      language: result.language,
+    };
+  }
+
+  // No language specified - auto-detect
+  const result = hljs.highlightAuto(content);
+  return {
+    highlighted: result.value,
+    language: result.language,
+  };
 }
 
 /**
  * Escape HTML for safe display
  */
 function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 export default hljs;
