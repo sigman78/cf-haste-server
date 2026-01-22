@@ -12,9 +12,9 @@
     "d1"
   ],
   "author": {
-    "name": "John Crepezzi",
-    "email": "john.crepezzi@gmail.com",
-    "url": "http://seejohncode.com/"
+    "name": "Anton Stuk",
+    "email": "sigman78@gmail.com",
+    "url": "http://www.ioupg.com/"
   },
   "scripts": {
     "dev": "wrangler dev",
