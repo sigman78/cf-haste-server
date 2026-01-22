@@ -50,9 +50,6 @@ export class StorageService {
    * @returns SaveResult with guaranteed key
    */
   async save(content: string): Promise<SaveResult> {
-    if (!content.trim()) {
-      throw new Error('Cannot save empty document');
-    }
 
     const response = await fetch('/documents', {
       method: 'POST',

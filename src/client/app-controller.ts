@@ -271,7 +271,7 @@ export class AppController {
    */
   private handleDuplicate(): void {
     if (this.lifecycleState === 'presenting') {
-      const content = this.document.duplicate();
+      const content = this.document.getContent();
 
       this.transitions.run(() => {
         // Reset document

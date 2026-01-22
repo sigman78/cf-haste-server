@@ -37,14 +37,6 @@ export function isLoaded(doc: DocumentState): doc is LoadedDocumentState {
   return 'key' in doc && doc.key !== undefined;
 }
 
-/**
- * Legacy metadata type for backwards compatibility
- */
-export interface DocumentMetaState {
-  key?: string;
-  language?: string;
-}
-
 export class DocumentModel {
   private state: DocumentState;
 
@@ -121,10 +113,5 @@ export class DocumentModel {
     this.state = {
       content: '',
     };
-  }
-
-  // Copy content for duplication
-  duplicate(): string {
-    return this.state.content;
   }
 }
