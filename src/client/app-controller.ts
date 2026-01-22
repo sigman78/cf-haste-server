@@ -166,7 +166,7 @@ export class AppController {
 
       // Fallback: stay in editing mode
       this.lifecycleState = 'editing';
-      this.view.renderMetadata(this.document.getState(), 'editing');
+      this.view.renderUIState(this.document.getState(), 'editing');
 
       // TODO: Show error to user
       alert('Failed to save document. Please try again.');
@@ -307,7 +307,7 @@ export class AppController {
     if (this.lifecycleState === 'editing') {
       this.document.setContent(content);
       // Update button states
-      this.view.renderMetadata(this.document.getState(), 'editing');
+      this.view.renderUIState(this.document.getState(), 'editing');
     }
   }
 }

@@ -5,7 +5,7 @@
  * - Owns specific DOM subtree
  * - Two render modes:
  *   - renderFullState(): Updates everything including textarea (for loading/reset)
- *   - renderMetadata(): Updates UI except textarea (during editing)
+ *   - renderUIState(): Updates UI except textarea (during editing)
  * - Reads: getContentFromDOM()
  * - Event delegation: emits user actions to controller
  * - No business logic
@@ -88,31 +88,23 @@ export class ViewManager {
       this.textarea.style.display = 'none';
       this.box.style.display = 'block';
       this.box.focus();
-      this.updateButtons(state, mode);
-      this.updateTitle(state);
     } else {
       // Editing view - show textarea
       this.textarea.value = state.content;
       this.textarea.style.display = 'block';
       this.box.style.display = 'none';
       this.textarea.focus();
-      this.updateButtons(state, mode);
-      this.updateTitle(state);
     }
+    this.renderUIState(state, mode);
   }
 
   /**
    * Render metadata only (during editing - don't touch textarea)
    */
-  renderMetadata(
+  renderUIState(
     state: DocumentState,
-    mode: 'editing' | 'presenting',
-    highlightedContent?: string
+    mode: 'editing' | 'presenting'
   ): void {
-    if (mode === 'presenting' && highlightedContent) {
-      // Update code view if presenting
-      this.code.innerHTML = highlightedContent;
-    }
     this.updateButtons(state, mode);
     this.updateTitle(state);
   }
