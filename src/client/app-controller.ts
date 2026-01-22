@@ -18,10 +18,11 @@ import {
   getExtensionForLanguage,
   getLanguageForExtension,
 } from './highlight-config';
+import appConfig from './config';
 
 type DocumentLifecycleState = 'loading' | 'editing' | 'presenting' | 'saving';
 
-export interface AppControllerOptions {
+export interface AppConfig {
   appName: string;
   enableTwitter: boolean;
 }
@@ -40,7 +41,7 @@ export class AppController {
   // Config
   private appName: string;
 
-  constructor(options: AppControllerOptions) {
+  constructor(options: AppConfig) {
     this.appName = options.appName;
 
     // Initialize modules
