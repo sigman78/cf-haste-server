@@ -141,8 +141,8 @@ export class AppController {
       // Highlight content and detect language in a single pass
       const { highlighted, language } = highlightContent(content);
 
-      // Update model
-      this.document.markSaved(result.key, language);
+      // Update document
+      this.document.update({ key: result.key, language: language });
 
       // Update state
       this.lifecycleState = 'presenting';
