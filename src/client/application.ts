@@ -16,13 +16,9 @@ import { initializeIcons } from './icons';
 import { AppController } from './app-controller';
 import appConfig from './config';
 
-// Initialize app on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize vector icons first
-  initializeIcons();
+// Initialize vector icons first
+initializeIcons();
 
-  // Create and initialize the app controller
-  const app = new AppController(appConfig);
-
-  app.init();
-});
+// Create and initialize the app controller
+const app = new AppController(appConfig);
+app.init();

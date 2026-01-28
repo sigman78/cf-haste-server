@@ -12,7 +12,7 @@ import { DocumentModel, isLoaded } from './document';
 import { StorageService } from './storage';
 import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
-import { Router } from './router';
+import { Router, MatchResult } from './router';
 import {
   highlightContent,
   getExtensionForLanguage,
@@ -52,9 +52,8 @@ export class AppController {
       enableTwitter: options.enableTwitter,
     });
     this.transitions = new TransitionManager();
-    this.router = new Router(options.appName);
 
-    // Wire up callbacks
+    // Wire up view callbacks
     this.view.setCallbacks({
       onSave: () => this.handleSave(),
       onNew: () => this.handleNew(),
@@ -63,7 +62,10 @@ export class AppController {
       onContentInput: (content) => this.handleContentInput(content),
     });
 
-    this.router.onRoute((path) => this.handleRoute(path));
+    // Initialize router with declarative routes
+    this.router = new Router();
+    this.router.on('/', (match: MatchResult) => this.newDocument(false));
+    this.router.on('/:doc', (match: MatchResult) => this.loadDocumentByPath(match.params.doc));
   }
 
   /**
@@ -71,20 +73,7 @@ export class AppController {
    */
   init(): void {
     this.view.init();
-    this.router.init();
-  }
-
-  /**
-   * Handle route changes
-   */
-  private handleRoute(path: string): void {
-    if (!path || path === '') {
-      // Home route - new document
-      this.newDocument(false);
-    } else {
-      // Load document
-      this.loadDocumentByPath(path);
-    }
+    this.router.resolve();
   }
 
   /**
@@ -105,7 +94,7 @@ export class AppController {
 
       // Update router
       if (pushState) {
-        this.router.navigate('', 'push');
+        this.router.navigate('/', 'push');
       }
 
       // Render
@@ -155,7 +144,7 @@ export class AppController {
       }
 
       // Update router
-      this.router.navigate(path, 'push');
+      this.router.navigate('/' + path, 'push');
 
       // Render with transition
       this.transitions.run(() => {
@@ -219,7 +208,7 @@ export class AppController {
 
         // Update router if path doesn't match
         if (path !== fullPath) {
-          this.router.navigate(fullPath, 'push');
+          this.router.navigate('/' + fullPath, 'push');
         }
       }
 
@@ -237,7 +226,7 @@ export class AppController {
       // Fallback: show new document
       this.lifecycleState = 'editing';
       this.document.reset();
-      this.router.navigate('', 'push');
+      this.router.navigate('/', 'push');
       this.view.renderFullState(this.document.getState(), 'editing');
 
       // TODO: Show error to user (optional)
@@ -282,7 +271,7 @@ export class AppController {
         this.lifecycleState = 'editing';
 
         // Navigate to home (replace current history entry to avoid empty intermediate state)
-        this.router.navigate('', 'replace');
+        this.router.navigate('/', 'replace');
 
         // Render with content
         this.view.renderFullState(this.document.getState(), 'editing');
