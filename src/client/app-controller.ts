@@ -64,8 +64,13 @@ export class AppController {
 
     // Initialize router with declarative routes
     this.router = new Router();
-    this.router.on('/', (match: MatchResult) => this.newDocument(false));
-    this.router.on('/:doc', (match: MatchResult) => this.loadDocumentByPath(match.params.doc));
+    this.router.on('/', (match: MatchResult) => this.handleRoot(match));
+    this.router.on('/:doc/edit', (match: MatchResult) =>
+      this.loadDocumentByPath(match.params.doc, 'editing', match.state)
+    );
+    this.router.on('/:doc', (match: MatchResult) =>
+      this.loadDocumentByPath(match.params.doc, 'presenting')
+    );
   }
 
   /**
@@ -74,6 +79,32 @@ export class AppController {
   init(): void {
     this.view.init();
     this.router.resolve();
+  }
+
+  /**
+   * Handle root route (/)
+   */
+  private handleRoot(match: MatchResult): void {
+    // Guard: can't create new while loading/saving
+    if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
+      return;
+    }
+
+    this.transitions.run(() => {
+      // Update model
+      this.document.reset();
+
+      // Check history state for restored content
+      if (match.state?.content) {
+        this.document.setContent(match.state.content);
+      }
+
+      // Update state
+      this.lifecycleState = 'editing';
+
+      // Render
+      this.view.renderFullState(this.document.getState(), 'editing');
+    });
   }
 
   /**
@@ -94,7 +125,7 @@ export class AppController {
 
       // Update router
       if (pushState) {
-        this.router.navigate('/', 'push');
+        this.router.navigate('/', { mode: 'push' });
       }
 
       // Render
@@ -144,7 +175,9 @@ export class AppController {
       }
 
       // Update router
-      this.router.navigate('/' + path, 'push');
+      // Use push mode to create a new history entry
+      // This ensures back button works correctly: doc2 -> doc1/edit -> doc1
+      this.router.navigate('/' + path, { mode: 'push' });
 
       // Render with transition
       this.transitions.run(() => {
@@ -165,7 +198,11 @@ export class AppController {
   /**
    * Load document by path (key with optional extension)
    */
-  private async loadDocumentByPath(path: string): Promise<void> {
+  private async loadDocumentByPath(
+    path: string,
+    defaultMode: 'editing' | 'presenting',
+    savedState?: any
+  ): Promise<void> {
     // Guard: can't load while loading/saving
     if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
       return;
@@ -175,58 +212,77 @@ export class AppController {
     const parts = path.split('.', 2);
     const key = parts[0];
     const ext = parts[1];
-    const language = ext ? getLanguageForExtension(ext) : undefined;
+    const urlLanguage = ext ? getLanguageForExtension(ext) : undefined;
 
     try {
-      // Update state
       this.lifecycleState = 'loading';
 
-      // Perform load (async)
-      const result = await this.storage.load(key);
+      if (savedState?.content) {
+        // Fast path: use saved content without storage call
+        const content = savedState.content;
+        const language = savedState.language || urlLanguage;
 
-      // Highlight content (with language hint if available)
-      const highlightResult = highlightContent(result.content, language || result.language);
+        // Highlight content
+        const highlightResult = highlightContent(content, language);
 
-      // Update model with the final language (detected or provided)
-      this.document.hydrate({
-        content: result.content,
-        key: result.key,
-        language: highlightResult.language || language || result.language,
-      });
+        // Update model
+        this.document.hydrate({
+          content,
+          key: savedState.key,
+          language: highlightResult.language || language,
+        });
 
-      // Update state
-      this.lifecycleState = 'presenting';
+        this.lifecycleState = defaultMode;
 
-      // Build path with extension
-      const state = this.document.getState();
-      if (isLoaded(state)) {
-        let fullPath = state.key;
-        if (state.language) {
-          const ext = getExtensionForLanguage(state.language);
-          fullPath += '.' + ext;
+        // Render with transition
+        this.transitions.run(() => {
+          this.view.renderFullState(
+            this.document.getState(),
+            defaultMode,
+            defaultMode === 'presenting' ? highlightResult.highlighted : undefined
+          );
+        });
+      } else {
+        // Slow path: load from storage
+        const result = await this.storage.load(key);
+
+        // Highlight content (with language hint if available)
+        const highlightResult = highlightContent(result.content, urlLanguage || result.language);
+
+        // Update model with the final language (detected or provided)
+        this.document.hydrate({
+          content: result.content,
+          key: result.key,
+          language: highlightResult.language || urlLanguage || result.language,
+        });
+
+        this.lifecycleState = defaultMode;
+
+        // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
+        if (defaultMode === 'presenting' && !path.includes('.')) {
+          const state = this.document.getState();
+          if (state.language) {
+            const ext = getExtensionForLanguage(state.language);
+            this.router.navigate(`/${state.key}.${ext}`, { mode: 'replace' });
+          }
         }
 
-        // Update router if path doesn't match
-        if (path !== fullPath) {
-          this.router.navigate('/' + fullPath, 'push');
-        }
+        // Render with transition
+        this.transitions.run(() => {
+          this.view.renderFullState(
+            this.document.getState(),
+            defaultMode,
+            defaultMode === 'presenting' ? highlightResult.highlighted : undefined
+          );
+        });
       }
-
-      // Render with transition
-      this.transitions.run(() => {
-        this.view.renderFullState(
-          this.document.getState(),
-          'presenting',
-          highlightResult.highlighted
-        );
-      });
     } catch (err) {
       console.error('Load failed:', err);
 
       // Fallback: show new document
       this.lifecycleState = 'editing';
       this.document.reset();
-      this.router.navigate('/', 'push');
+      this.router.navigate('/', { mode: 'push' });
       this.view.renderFullState(this.document.getState(), 'editing');
 
       // TODO: Show error to user (optional)
@@ -261,6 +317,8 @@ export class AppController {
   private handleDuplicate(): void {
     if (this.lifecycleState === 'presenting') {
       const content = this.document.getContent();
+      const key = this.document.getKey();
+      const language = this.document.getLanguage();
 
       this.transitions.run(() => {
         // Reset document
@@ -270,8 +328,12 @@ export class AppController {
         // Update state
         this.lifecycleState = 'editing';
 
-        // Navigate to home (replace current history entry to avoid empty intermediate state)
-        this.router.navigate('/', 'replace');
+        // Navigate to edit URL with content in history state (PUSH to preserve /doc in history)
+        // Note: URL is /key/edit without extension, state has language
+        this.router.navigate(`/${key}/edit`, {
+          mode: 'push',
+          state: { content, key, language },
+        });
 
         // Render with content
         this.view.renderFullState(this.document.getState(), 'editing');

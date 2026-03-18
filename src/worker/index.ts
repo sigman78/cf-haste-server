@@ -129,9 +129,9 @@ app.get('*', async (c) => {
   const url = new URL(c.req.url);
   const path = url.pathname;
 
-  // If path looks like a document key (e.g., /abc123 or /abc123.js),
+  // If path looks like a document key (e.g., /abc123 or /abc123.js or /abc123.js/fork),
   // serve index.html to let the SPA handle routing
-  const isDocumentRoute = path.match(/^\/[a-zA-Z0-9-]+(\.[a-zA-Z0-9]+)?$/);
+  const isDocumentRoute = path.match(/^\/[\w-]+(\.[\w]+)?([\/\w\.-])*$/);
   const isAssetRoute =
     path.startsWith('/assets/') ||
     path.endsWith('.css') ||

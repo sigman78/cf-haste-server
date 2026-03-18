@@ -52,6 +52,7 @@ export interface MatchResult {
   path: string; // The path part (e.g. /users/1)
   params: Record<string, string>; // Extracted params (e.g. { id: "1" })
   query: URLSearchParams;
+  state?: any; // Navigation state from history API
 }
 
 interface Route {
@@ -134,18 +135,19 @@ export class Router {
   /**
    * Programmatic navigation.
    */
-  public navigate(path: string, mode: NavigationMode = 'auto'): void {
+  public navigate(path: string, options: { mode?: NavigationMode; state?: any } = {}): void {
     console.log(`Router navigate: ${path}`);
+    const { mode = 'auto', state } = options;
     if (this.useNavigationApi && window.navigation) {
-      window.navigation.navigate(path, { history: mode });
+      window.navigation.navigate(path, { history: mode, state });
     } else {
       switch (mode) {
         case 'auto':
         case 'push':
-          window.history.pushState({}, '', path);
+          window.history.pushState(state || {}, '', path);
           break;
         case 'replace':
-          window.history.replaceState({}, '', path);
+          window.history.replaceState(state || {}, '', path);
           break;
       }
       // Manually trigger route check for legacy mode
@@ -201,15 +203,37 @@ export class Router {
 
   private async handleRoute(urlStr: string): Promise<void> {
     const url = new URL(urlStr);
+
+    // Get navigation state (works for both popstate and Navigation API)
+    let state: any;
+    if (this.useNavigationApi && window.navigation) {
+      const entry = window.navigation.currentEntry;
+      state = entry?.getState();
+    } else {
+      state = window.history.state;
+    }
+
     let matched = false;
 
-    console.log(`Router handleRoute: ${urlStr}`);
-    for (const route of this.routes) {
+    console.log(`Router handleRoute: ${urlStr}, path: ${url.pathname}`);
+
+    // Important: Sort routes by specificity - more segments first
+    // This ensures that /doc/edit matches before /:doc
+    const sortedRoutes = [...this.routes].sort((a, b) => {
+      const segmentsA = a.pathRaw.split('/').length;
+      const segmentsB = b.pathRaw.split('/').length;
+      return segmentsB - segmentsA; // More segments first
+    });
+
+    for (const route of sortedRoutes) {
+      console.log(`Checking route: ${route.pathRaw}`);
       const matchResult = this.execMatch(route, url);
 
       if (matchResult) {
+        console.log(`Matched route: ${route.pathRaw}`);
         matched = true;
-        await route.handler(matchResult);
+        // Pass state to handlers
+        await route.handler({ ...matchResult, state });
         break; // Stop after first match (Navigo behavior)
       }
     }
@@ -221,6 +245,7 @@ export class Router {
         path: url.pathname,
         params: {},
         query: url.searchParams,
+        state,
       });
     }
   }
@@ -239,7 +264,6 @@ export class Router {
       const normalized = path.replace(/\/$/, ''); // Remove trailing slash for consistency
       const regexString =
         '^' + normalized.replace(/\//g, '\\/').replace(/:([^/]+)/g, '(?<$1>[^/]+)') + '\\/?$'; // Allow optional trailing slash
-
       return new RegExp(regexString);
     }
   }
