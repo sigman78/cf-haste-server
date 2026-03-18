@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241218.0",
+    "@playwright/test": "^1.58.2",
     "@types/dom-navigation": "^1.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.2",
