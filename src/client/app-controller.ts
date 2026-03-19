@@ -21,6 +21,7 @@ import {
 import appConfig from './config';
 
 type DocumentLifecycleState = 'loading' | 'editing' | 'presenting' | 'saving';
+type HistoryState = { content?: string };
 
 export interface AppConfig {
   appName: string;
@@ -38,12 +39,7 @@ export class AppController {
   // State machine
   private lifecycleState: DocumentLifecycleState = 'editing';
 
-  // Config
-  private appName: string;
-
   constructor(options: AppConfig) {
-    this.appName = options.appName;
-
     // Initialize modules
     this.document = new DocumentModel();
     this.storage = new StorageService();
@@ -101,8 +97,9 @@ export class AppController {
       this.document.reset();
 
       // Check history state for restored content
-      if ((state as any)?.content) {
-        this.document.setContent((state as any).content);
+      const historyState = state as HistoryState | undefined;
+      if (historyState?.content) {
+        this.document.setContent(historyState.content);
       }
 
       // Update state
@@ -171,13 +168,13 @@ export class AppController {
       this.view.showProgress();
 
       // Perform save (async)
-      const result = await this.storage.save(this.document.serialize());
+      const result = await this.storage.save(this.document.getContent());
 
       // Highlight content and detect language in a single pass
       const { highlighted, language } = highlightContent(content);
 
       // Update document
-      this.document.update({ key: result.key, language: language });
+      this.document.markSaved(result.key, language);
 
       // Update state
       this.lifecycleState = 'presenting';
@@ -242,7 +239,7 @@ export class AppController {
       const highlightResult = highlightContent(result.content, urlLanguage || result.language);
 
       // Update model with the final language (detected or provided)
-      this.document.hydrate({
+      this.document.restore({
         content: result.content,
         key: result.key,
         language: highlightResult.language || urlLanguage || result.language,
@@ -254,8 +251,8 @@ export class AppController {
       if (defaultMode === 'presenting' && !path.includes('.')) {
         const state = this.document.getState();
         if (state.language) {
-          const ext = getExtensionForLanguage(state.language);
-          this.history.replace(`/${state.key}.${ext}`);
+          const langExt = getExtensionForLanguage(state.language);
+          this.history.replace(`/${state.key}.${langExt}`);
         }
       }
 

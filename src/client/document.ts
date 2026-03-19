@@ -4,7 +4,7 @@
  * Responsibilities:
  * - Business logic only, no I/O, no DOM
  * - Data: content, key, language
- * - Operations: getters, setters, serialize, hydrate, reset
+ * - Operations: getters, setters, markSaved, restore, reset
  * - Lifecycle state managed by AppController
  */
 
@@ -24,13 +24,6 @@ export function isLoaded(doc: DocumentState) {
   return 'key' in doc && doc.key !== undefined;
 }
 
-// Partial<Pick<DocumentState, 'key' | 'content' | 'language'>>
-type DocumentUpdate = {
-  key?: string;
-  content?: string;
-  language?: string;
-};
-
 export class DocumentModel {
   private state: DocumentState;
 
@@ -46,7 +39,7 @@ export class DocumentModel {
   }
 
   getKey(): string | undefined {
-    return this.state?.key;
+    return this.state.key;
   }
 
   getLanguage(): string | undefined {
@@ -61,11 +54,8 @@ export class DocumentModel {
     return isLoaded(this.state);
   }
 
-  update(update: DocumentUpdate): void {
-    this.state = {
-      ...this.state,
-      ...update,
-    };
+  markSaved(key: string, language?: string): void {
+    this.state = { ...this.state, key, language };
   }
 
   // Setters
@@ -76,18 +66,13 @@ export class DocumentModel {
     };
   }
 
-  // Load from external data (after fetch)
-  hydrate(data: DocumentState): void {
+  // Restore from server response (load)
+  restore(data: DocumentState): void {
     this.state = {
       content: data.content,
       key: data.key,
       language: data.language,
     };
-  }
-
-  // Serialize for save
-  serialize(): string {
-    return this.state.content;
   }
 
   // Reset to blank (new document)
