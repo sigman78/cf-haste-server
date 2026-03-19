@@ -34,6 +34,11 @@ export class ViewManager {
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly isMac: boolean =
     /Mac|iPhone|iPad|iPod/.test(navigator.platform) || navigator.userAgent.includes('Mac');
+  private readonly ZOOM_KEY = 'editor-zoom';
+  private readonly ZOOM_STEP = 0.1;
+  private readonly ZOOM_MIN = 0.5;
+  private readonly ZOOM_MAX = 3.0;
+  private editorZoom: number = 1;
 
   constructor(options: RenderOptions) {
     this.appName = options.appName;
@@ -62,6 +67,7 @@ export class ViewManager {
     this.setupButtons();
     this.setupKeyboardShortcuts();
     this.setupEditorListeners();
+    this.initZoom();
   }
 
   /**
@@ -254,28 +260,68 @@ export class ViewManager {
    */
   private setupKeyboardShortcuts(): void {
     document.body.addEventListener('keydown', (evt) => {
-      const hot = evt.ctrlKey;
-      if (!hot) return;
-      switch (evt.key.toLowerCase()) {
-        case 's':
-        case 'l':
-          evt.preventDefault();
-          this.callbacks?.onSave();
-          break;
-        case 'n':
-          evt.preventDefault();
-          this.callbacks?.onNew();
-          break;
-        case 'd':
-          evt.preventDefault();
-          this.callbacks?.onDuplicate();
-          break;
-        case 't':
-          evt.preventDefault();
-          this.callbacks?.onTwitter();
-          break;
+      const ctrlHot = evt.ctrlKey;
+      const fontHot = evt.altKey && (this.isMac ? evt.metaKey : evt.ctrlKey);
+
+      if (ctrlHot) {
+        switch (evt.key.toLowerCase()) {
+          case 's':
+          case 'l':
+            evt.preventDefault();
+            this.callbacks?.onSave();
+            break;
+          case 'n':
+            evt.preventDefault();
+            this.callbacks?.onNew();
+            break;
+          case 'd':
+            evt.preventDefault();
+            this.callbacks?.onDuplicate();
+            break;
+          case 't':
+            evt.preventDefault();
+            this.callbacks?.onTwitter();
+            break;
+        }
+      }
+
+      if (fontHot) {
+        switch (evt.code) {
+          case 'Equal':
+            evt.preventDefault();
+            this.editorZoom = parseFloat(
+              Math.min(this.ZOOM_MAX, this.editorZoom + this.ZOOM_STEP).toFixed(2)
+            );
+            this.applyZoom();
+            break;
+          case 'Minus':
+            evt.preventDefault();
+            this.editorZoom = parseFloat(
+              Math.max(this.ZOOM_MIN, this.editorZoom - this.ZOOM_STEP).toFixed(2)
+            );
+            this.applyZoom();
+            break;
+          case 'Digit0':
+            evt.preventDefault();
+            this.editorZoom = 1;
+            this.applyZoom();
+            break;
+        }
       }
     });
+  }
+
+  private initZoom(): void {
+    const stored = sessionStorage.getItem(this.ZOOM_KEY);
+    if (stored !== null) {
+      this.editorZoom = parseFloat(stored);
+    }
+    this.applyZoom();
+  }
+
+  private applyZoom(): void {
+    this.editor.style.setProperty('--editor-zoom', String(this.editorZoom));
+    sessionStorage.setItem(this.ZOOM_KEY, String(this.editorZoom));
   }
 
   /**
