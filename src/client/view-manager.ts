@@ -282,11 +282,33 @@ export class ViewManager {
    * Setup editor event listeners
    */
   private setupEditorListeners(): void {
-    // Tab: insert 2 spaces at cursor
+    // Tab: insert 2 spaces (no selection) or indent all selected lines (with selection)
     this.editor.addEventListener('keydown', (evt) => {
-      if (evt.key === 'Tab') {
-        evt.preventDefault();
+      if (evt.key !== 'Tab') return;
+      evt.preventDefault();
+
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+
+      if (sel.isCollapsed) {
         document.execCommand('insertText', false, '  ');
+        return;
+      }
+
+      // Indent each selected line by prepending 2 spaces
+      const indented = sel
+        .toString()
+        .split('\n')
+        .map((l) => '  ' + l)
+        .join('\n');
+      document.execCommand('insertText', false, indented);
+
+      // Re-select the inserted text so subsequent Tab presses continue indenting.
+      // execCommand collapses the cursor to end of inserted text; extend backwards
+      // one character at a time to cover the full inserted length.
+      const newSel = window.getSelection()!;
+      for (let i = 0; i < indented.length; i++) {
+        newSel.modify('extend', 'backward', 'character');
       }
     });
 

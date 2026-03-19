@@ -89,6 +89,7 @@ test.describe('Paste lifecycle', () => {
   test('4 - back from presenting returns to home in editing mode', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).fill('const x = 1;');
     await page.locator(S.saveBtn).click();
@@ -511,5 +512,35 @@ test.describe('Paste lifecycle', () => {
 
     // Should be scrolled to top
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
+  test('25 - tab with selection indents all selected lines', async ({ page }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    await waitForEditingMode(page);
+
+    await page.locator(S.editor).fill('line1\nline2\nline3');
+
+    // Select all text
+    await page.locator(S.editor).click();
+    await page.keyboard.press('Control+a');
+
+    // Tab should indent all 3 lines
+    await page.keyboard.press('Tab');
+
+    const content = await page.locator(S.editor).innerText();
+    expect(content).toBe('  line1\n  line2\n  line3');
+  });
+
+  test('26 - tab without selection inserts 2 spaces at cursor', async ({ page }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    await waitForEditingMode(page);
+
+    await page.locator(S.editor).click();
+    await page.keyboard.press('Tab');
+
+    const content = await page.locator(S.editor).innerText();
+    expect(content).toMatch(/^ {2}/);
   });
 });
