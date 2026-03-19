@@ -11,8 +11,7 @@
  * - No business logic
  */
 
-import type { DocumentState } from './document';
-import { isLoaded } from './document';
+import type { Paste } from './paste';
 import 'highlight.js/styles/base16/solarized-dark.css';
 
 export interface ViewCallbacks {
@@ -79,11 +78,7 @@ export class ViewManager {
   /**
    * Render full state including textarea (for loading/reset)
    */
-  renderFullState(
-    state: DocumentState,
-    mode: 'editing' | 'presenting',
-    highlightedContent?: string
-  ): void {
+  renderFullState(state: Paste, mode: 'editing' | 'presenting', highlightedContent?: string): void {
     if (mode === 'presenting' && highlightedContent) {
       // Presenting view - show highlighted code
       this.code.innerHTML = highlightedContent;
@@ -104,7 +99,7 @@ export class ViewManager {
   /**
    * Render metadata only (during editing - don't touch textarea)
    */
-  renderUIState(state: DocumentState, mode: 'editing' | 'presenting'): void {
+  renderUIState(state: Paste, mode: 'editing' | 'presenting'): void {
     this.updateButtons(state, mode);
     this.updateTitle(state);
   }
@@ -151,8 +146,8 @@ export class ViewManager {
   /**
    * Update document title
    */
-  private updateTitle(state: DocumentState): void {
-    if (isLoaded(state)) {
+  private updateTitle(state: Paste): void {
+    if (state.isLoaded) {
       document.title = `${this.appName} - ${state.key}`;
     } else {
       document.title = this.appName;
@@ -162,7 +157,7 @@ export class ViewManager {
   /**
    * Update button states based on document state
    */
-  private updateButtons(state: DocumentState, mode: 'editing' | 'presenting'): void {
+  private updateButtons(state: Paste, mode: 'editing' | 'presenting'): void {
     const functions = document.querySelectorAll('#box2 .function');
     functions.forEach((element) => {
       const el = element as HTMLElement;

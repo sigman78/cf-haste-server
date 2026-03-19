@@ -9,14 +9,15 @@
  */
 
 import type { GetResponse, SaveResponse } from '../shared/types';
-import type { DocumentState } from './document';
 
-/**
- * Result from saving a document (contains key, optionally language)
- */
-export interface SaveResult {
+export interface LoadResult {
+  content: string;
   key: string;
   language?: string;
+}
+
+export interface SaveResult {
+  key: string;
 }
 
 export class StorageService {
@@ -25,7 +26,7 @@ export class StorageService {
    * @throws Error if fetch fails or document not found
    * @returns LoadedDocumentState with guaranteed key
    */
-  async load(key: string): Promise<DocumentState> {
+  async load(key: string): Promise<LoadResult> {
     const response = await fetch(`/documents/${key}`);
 
     if (!response.ok) {
@@ -50,7 +51,6 @@ export class StorageService {
    * @returns SaveResult with guaranteed key
    */
   async save(content: string): Promise<SaveResult> {
-
     const response = await fetch('/documents', {
       method: 'POST',
       headers: {

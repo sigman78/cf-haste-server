@@ -1,4 +1,4 @@
-export interface Document {
+export interface DocumentRecord {
   id: string;
   content: string;
   created_at: number;
