@@ -4,8 +4,8 @@
  * Responsibilities:
  * - Owns specific DOM subtree
  * - Two render modes:
- *   - renderFullState(): Updates everything including textarea (for loading/reset)
- *   - renderUIState(): Updates UI except textarea (during editing)
+ *   - renderFullState(): Updates everything including editor (for loading/reset)
+ *   - renderUIState(): Updates UI except editor (during editing)
  * - Reads: getContentFromDOM()
  * - Event delegation: emits user actions to controller
  * - No business logic
@@ -28,9 +28,7 @@ export interface RenderOptions {
 }
 
 export class ViewManager {
-  private textarea: HTMLTextAreaElement;
-  private box: HTMLElement;
-  private code: HTMLElement;
+  private editor: HTMLDivElement;
   private appName: string;
   private callbacks?: ViewCallbacks;
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -39,9 +37,7 @@ export class ViewManager {
 
   constructor(options: RenderOptions) {
     this.appName = options.appName;
-    this.textarea = document.querySelector('textarea')!;
-    this.box = document.getElementById('box')!;
-    this.code = document.querySelector('#box code')!;
+    this.editor = document.getElementById('editor') as HTMLDivElement;
 
     // Hide twitter button if disabled
     if (!options.enableTwitter) {
@@ -65,33 +61,30 @@ export class ViewManager {
   init(): void {
     this.setupButtons();
     this.setupKeyboardShortcuts();
-    this.setupTextareaListeners();
+    this.setupEditorListeners();
   }
 
   /**
-   * Get current content from textarea
+   * Get current content from editor
    */
   getContentFromDOM(): string {
-    return this.textarea.value;
+    return this.editor.innerText;
   }
 
   /**
-   * Render full state including textarea (for loading/reset)
+   * Render full state including editor (for loading/reset)
    */
   renderFullState(state: Paste, mode: 'editing' | 'presenting', highlightedContent?: string): void {
     if (mode === 'presenting' && highlightedContent) {
-      // Presenting view - show highlighted code
-      this.code.innerHTML = highlightedContent;
-      this.textarea.value = '';
-      this.textarea.style.display = 'none';
-      this.box.style.display = 'block';
-      this.box.focus();
+      this.editor.contentEditable = 'false';
+      this.editor.classList.add('hljs');
+      this.editor.innerHTML = highlightedContent;
+      this.editor.focus();
     } else {
-      // Editing view - show textarea
-      this.textarea.value = state.content;
-      this.textarea.style.display = 'block';
-      this.box.style.display = 'none';
-      this.textarea.focus();
+      this.editor.contentEditable = 'plaintext-only';
+      this.editor.classList.remove('hljs');
+      this.editor.textContent = state.content;
+      this.editor.focus();
     }
     this.renderUIState(state, mode);
   }
@@ -286,33 +279,43 @@ export class ViewManager {
   }
 
   /**
-   * Setup textarea event listeners
+   * Setup editor event listeners
    */
-  private setupTextareaListeners(): void {
-    // Tab key: insert 2 spaces
-    this.textarea.addEventListener('keydown', (evt) => {
-      if (evt.key === 'Tab') {
-        evt.preventDefault();
-        const myValue = '  ';
-        const startPos = this.textarea.selectionStart;
-        const endPos = this.textarea.selectionEnd;
-        const scrollTop = this.textarea.scrollTop;
+  private setupEditorListeners(): void {
+    // Tab: insert 2 spaces (no selection) or indent all selected lines (with selection)
+    this.editor.addEventListener('keydown', (evt) => {
+      if (evt.key !== 'Tab') return;
+      evt.preventDefault();
 
-        this.textarea.value =
-          this.textarea.value.substring(0, startPos) +
-          myValue +
-          this.textarea.value.substring(endPos);
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
 
-        this.textarea.selectionStart = startPos + myValue.length;
-        this.textarea.selectionEnd = startPos + myValue.length;
-        this.textarea.scrollTop = scrollTop;
+      if (sel.isCollapsed) {
+        document.execCommand('insertText', false, '  ');
+        return;
+      }
+
+      // Indent each selected line by prepending 2 spaces
+      const indented = sel
+        .toString()
+        .split('\n')
+        .map((l) => '  ' + l)
+        .join('\n');
+      document.execCommand('insertText', false, indented);
+
+      // Re-select the inserted text so subsequent Tab presses continue indenting.
+      // execCommand collapses the cursor to end of inserted text; extend backwards
+      // one character at a time to cover the full inserted length.
+      const newSel = window.getSelection()!;
+      for (let i = 0; i < indented.length; i++) {
+        newSel.modify('extend', 'backward', 'character');
       }
     });
 
-    // Input event: notify controller of content changes
-    this.textarea.addEventListener('input', () => {
+    // Input: notify controller of content changes
+    this.editor.addEventListener('input', () => {
       if (this.callbacks?.onContentInput) {
-        this.callbacks.onContentInput(this.textarea.value);
+        this.callbacks.onContentInput(this.editor.innerText);
       }
     });
   }

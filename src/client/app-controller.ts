@@ -21,11 +21,12 @@ import {
 import appConfig from './config';
 
 type DocumentLifecycleState = 'loading' | 'editing' | 'presenting' | 'saving';
-type HistoryState = { content?: string };
+type HistoryState = { content?: string; scrollY?: number };
 
 export interface AppConfig {
   appName: string;
   enableTwitter: boolean;
+  scrollToTopOnSave?: boolean; // default true
 }
 
 export class AppController {
@@ -38,8 +39,11 @@ export class AppController {
 
   // State machine
   private lifecycleState: DocumentLifecycleState = 'editing';
+  private scrollToTopOnSave: boolean;
 
   constructor(options: AppConfig) {
+    this.scrollToTopOnSave = options.scrollToTopOnSave !== false;
+
     // Initialize modules
     this.document = new Paste();
     this.storage = new StorageService();
@@ -64,7 +68,7 @@ export class AppController {
       if (path === '/' || path === '') {
         this.handleRoot(state);
       } else {
-        this.loadDocumentByPath(path.slice(1), 'presenting');
+        this.loadDocumentByPath(path.slice(1), 'presenting', state as HistoryState);
       }
     });
   }
@@ -73,6 +77,7 @@ export class AppController {
    * Initialize the application
    */
   init(): void {
+    history.scrollRestoration = 'manual';
     this.view.init();
     window.addEventListener('beforeunload', (e) => {
       if (this.lifecycleState === 'editing' && this.document.content.trim()) {
@@ -92,21 +97,15 @@ export class AppController {
       return;
     }
 
+    const historyState = state as HistoryState | undefined;
+    const targetScrollY = historyState?.scrollY ?? 0;
+
     this.transitions.run(() => {
-      // Update model
       this.document.reset();
-
-      // Check history state for restored content
-      const historyState = state as HistoryState | undefined;
-      if (historyState?.content) {
-        this.document.content = historyState.content;
-      }
-
-      // Update state
+      if (historyState?.content) this.document.content = historyState.content;
       this.lifecycleState = 'editing';
-
-      // Render
       this.view.renderFullState(this.document, 'editing');
+      window.scrollTo({ top: targetScrollY, behavior: 'instant' });
     });
   }
 
@@ -119,28 +118,24 @@ export class AppController {
       return;
     }
 
-    // Bug C3 fix: persist draft to current history entry before navigating away
-    if (pushState && this.lifecycleState === 'editing') {
-      const draft = this.document.content;
-      if (draft) {
-        this.history.replace(window.location.pathname, { content: draft });
+    if (pushState) {
+      // Persist draft and scroll to current history entry before navigating
+      if (this.lifecycleState === 'editing' && this.document.content) {
+        this.history.replace(window.location.pathname, {
+          content: this.document.content,
+          scrollY: window.scrollY,
+        });
+      } else {
+        this.captureScrollInHistory();
       }
+      this.history.push('/');
     }
 
     this.transitions.run(() => {
-      // Update model
       this.document.reset();
-
-      // Update state
       this.lifecycleState = 'editing';
-
-      // Update history
-      if (pushState) {
-        this.history.push('/');
-      }
-
-      // Render
       this.view.renderFullState(this.document, 'editing');
+      window.scrollTo({ top: 0, behavior: 'instant' });
     });
   }
 
@@ -190,7 +185,7 @@ export class AppController {
       }
 
       // Bug C3 fix: persist draft to current history entry before navigating to saved doc
-      this.history.replace(window.location.pathname, { content: content });
+      this.history.replace(window.location.pathname, { content: content, scrollY: window.scrollY });
 
       // Push new history entry
       this.history.push('/' + path);
@@ -198,6 +193,9 @@ export class AppController {
       // Render with transition
       this.transitions.run(() => {
         this.view.renderFullState(this.document, 'presenting', highlighted);
+        if (this.scrollToTopOnSave) {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }
       });
     } catch (err) {
       console.error('Save failed:', err);
@@ -216,7 +214,8 @@ export class AppController {
    */
   private async loadDocumentByPath(
     path: string,
-    defaultMode: 'editing' | 'presenting'
+    defaultMode: 'editing' | 'presenting',
+    historyState?: HistoryState
   ): Promise<void> {
     // Guard: can't load while loading/saving
     if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
@@ -255,6 +254,8 @@ export class AppController {
         }
       }
 
+      const targetScrollY = historyState?.scrollY ?? 0;
+
       // Render with transition
       this.transitions.run(() => {
         this.view.renderFullState(
@@ -262,6 +263,7 @@ export class AppController {
           defaultMode,
           defaultMode === 'presenting' ? highlightResult.highlighted : undefined
         );
+        window.scrollTo({ top: targetScrollY, behavior: 'instant' });
       });
     } catch (err) {
       console.error('Load failed:', err);
@@ -273,6 +275,11 @@ export class AppController {
       this.view.showError('Document not found.');
       this.view.renderFullState(this.document, 'editing');
     }
+  }
+
+  private captureScrollInHistory(): void {
+    const existing = (window.history.state as HistoryState) ?? {};
+    this.history.replace(window.location.pathname, { ...existing, scrollY: window.scrollY });
   }
 
   /**

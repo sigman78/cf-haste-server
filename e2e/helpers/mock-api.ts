@@ -18,6 +18,25 @@ export interface MockStore {
  * Key generation: sequential testkey0, testkey1, ... for predictability.
  */
 export async function setupMockApi(page: Page): Promise<MockStore> {
+  // Make view transitions synchronous so the callback runs immediately rather
+  // than being scheduled before the next frame. Without this, Playwright can
+  // send fill()/click() commands before the transition callback fires, which
+  // clears the editor and disables the save button.
+  await page.addInitScript(() => {
+    if ('startViewTransition' in document) {
+      document.startViewTransition = (callback?: () => void | Promise<void>) => {
+        if (callback) callback();
+        const p = Promise.resolve() as Promise<undefined>;
+        return {
+          ready: p,
+          finished: p,
+          updateCallbackDone: p,
+          skipTransition: () => {},
+        } as ViewTransition;
+      };
+    }
+  });
+
   const docs = new Map<string, string>();
   let counter = 0;
   let lastSavedKey: string | undefined;
