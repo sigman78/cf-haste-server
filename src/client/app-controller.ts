@@ -12,7 +12,7 @@ import { DocumentModel, isLoaded } from './document';
 import { StorageService } from './storage';
 import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
-import { Router, MatchResult } from './router';
+import { HistoryManager } from './history-manager';
 import {
   highlightContent,
   getExtensionForLanguage,
@@ -33,7 +33,7 @@ export class AppController {
   private storage: StorageService;
   private view: ViewManager;
   private transitions: TransitionManager;
-  private router: Router;
+  private history: HistoryManager;
 
   // State machine
   private lifecycleState: DocumentLifecycleState = 'editing';
@@ -62,15 +62,15 @@ export class AppController {
       onContentInput: (content) => this.handleContentInput(content),
     });
 
-    // Initialize router with declarative routes
-    this.router = new Router();
-    this.router.on('/', (match: MatchResult) => this.handleRoot(match));
-    this.router.on('/:doc/edit', (match: MatchResult) =>
-      this.loadDocumentByPath(match.params.doc, 'editing', match.state)
-    );
-    this.router.on('/:doc', (match: MatchResult) =>
-      this.loadDocumentByPath(match.params.doc, 'presenting')
-    );
+    // Initialize history manager
+    this.history = new HistoryManager();
+    this.history.onNavigate((path, state) => {
+      if (path === '/' || path === '') {
+        this.handleRoot(state);
+      } else {
+        this.loadDocumentByPath(path.slice(1), 'presenting');
+      }
+    });
   }
 
   /**
@@ -78,13 +78,13 @@ export class AppController {
    */
   init(): void {
     this.view.init();
-    this.router.resolve();
+    this.history.resolve();
   }
 
   /**
    * Handle root route (/)
    */
-  private handleRoot(match: MatchResult): void {
+  private handleRoot(state?: unknown): void {
     // Guard: can't create new while loading/saving
     if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
       return;
@@ -95,8 +95,8 @@ export class AppController {
       this.document.reset();
 
       // Check history state for restored content
-      if (match.state?.content) {
-        this.document.setContent(match.state.content);
+      if ((state as any)?.content) {
+        this.document.setContent((state as any).content);
       }
 
       // Update state
@@ -123,9 +123,9 @@ export class AppController {
       // Update state
       this.lifecycleState = 'editing';
 
-      // Update router
+      // Update history
       if (pushState) {
-        this.router.navigate('/', { mode: 'push' });
+        this.history.push('/');
       }
 
       // Render
@@ -174,10 +174,8 @@ export class AppController {
         path += '.' + ext;
       }
 
-      // Update router
-      // Use push mode to create a new history entry
-      // This ensures back button works correctly: doc2 -> doc1/edit -> doc1
-      this.router.navigate('/' + path, { mode: 'push' });
+      // Push new history entry
+      this.history.push('/' + path);
 
       // Render with transition
       this.transitions.run(() => {
@@ -200,8 +198,7 @@ export class AppController {
    */
   private async loadDocumentByPath(
     path: string,
-    defaultMode: 'editing' | 'presenting',
-    savedState?: any
+    defaultMode: 'editing' | 'presenting'
   ): Promise<void> {
     // Guard: can't load while loading/saving
     if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
@@ -217,72 +214,45 @@ export class AppController {
     try {
       this.lifecycleState = 'loading';
 
-      if (savedState?.content) {
-        // Fast path: use saved content without storage call
-        const content = savedState.content;
-        const language = savedState.language || urlLanguage;
+      // Load from storage
+      const result = await this.storage.load(key);
 
-        // Highlight content
-        const highlightResult = highlightContent(content, language);
+      // Highlight content (with language hint if available)
+      const highlightResult = highlightContent(result.content, urlLanguage || result.language);
 
-        // Update model
-        this.document.hydrate({
-          content,
-          key: savedState.key,
-          language: highlightResult.language || language,
-        });
+      // Update model with the final language (detected or provided)
+      this.document.hydrate({
+        content: result.content,
+        key: result.key,
+        language: highlightResult.language || urlLanguage || result.language,
+      });
 
-        this.lifecycleState = defaultMode;
+      this.lifecycleState = defaultMode;
 
-        // Render with transition
-        this.transitions.run(() => {
-          this.view.renderFullState(
-            this.document.getState(),
-            defaultMode,
-            defaultMode === 'presenting' ? highlightResult.highlighted : undefined
-          );
-        });
-      } else {
-        // Slow path: load from storage
-        const result = await this.storage.load(key);
-
-        // Highlight content (with language hint if available)
-        const highlightResult = highlightContent(result.content, urlLanguage || result.language);
-
-        // Update model with the final language (detected or provided)
-        this.document.hydrate({
-          content: result.content,
-          key: result.key,
-          language: highlightResult.language || urlLanguage || result.language,
-        });
-
-        this.lifecycleState = defaultMode;
-
-        // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
-        if (defaultMode === 'presenting' && !path.includes('.')) {
-          const state = this.document.getState();
-          if (state.language) {
-            const ext = getExtensionForLanguage(state.language);
-            this.router.navigate(`/${state.key}.${ext}`, { mode: 'replace' });
-          }
+      // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
+      if (defaultMode === 'presenting' && !path.includes('.')) {
+        const state = this.document.getState();
+        if (state.language) {
+          const ext = getExtensionForLanguage(state.language);
+          this.history.replace(`/${state.key}.${ext}`);
         }
-
-        // Render with transition
-        this.transitions.run(() => {
-          this.view.renderFullState(
-            this.document.getState(),
-            defaultMode,
-            defaultMode === 'presenting' ? highlightResult.highlighted : undefined
-          );
-        });
       }
+
+      // Render with transition
+      this.transitions.run(() => {
+        this.view.renderFullState(
+          this.document.getState(),
+          defaultMode,
+          defaultMode === 'presenting' ? highlightResult.highlighted : undefined
+        );
+      });
     } catch (err) {
       console.error('Load failed:', err);
 
       // Fallback: show new document
       this.lifecycleState = 'editing';
       this.document.reset();
-      this.router.navigate('/', { mode: 'push' });
+      this.history.push('/');
       this.view.renderFullState(this.document.getState(), 'editing');
 
       // TODO: Show error to user (optional)
@@ -317,25 +287,11 @@ export class AppController {
   private handleDuplicate(): void {
     if (this.lifecycleState === 'presenting') {
       const content = this.document.getContent();
-      const key = this.document.getKey();
-      const language = this.document.getLanguage();
-
       this.transitions.run(() => {
-        // Reset document
         this.document.reset();
         this.document.setContent(content);
-
-        // Update state
         this.lifecycleState = 'editing';
-
-        // Navigate to edit URL with content in history state (PUSH to preserve /doc in history)
-        // Note: URL is /key/edit without extension, state has language
-        this.router.navigate(`/${key}/edit`, {
-          mode: 'push',
-          state: { content, key, language },
-        });
-
-        // Render with content
+        // URL stays at current doc — no history push
         this.view.renderFullState(this.document.getState(), 'editing');
       });
     }

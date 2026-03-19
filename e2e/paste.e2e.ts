@@ -179,10 +179,9 @@ test.describe('Paste lifecycle', () => {
     await waitForPresentingMode(page);
 
     await page.locator(S.duplicateBtn).click();
-    await page.waitForURL(/\/testkey0\/edit/);
     await waitForEditingMode(page);
+    await expect(page).toHaveURL(/\/testkey0/); // no /edit suffix
 
-    // Content loaded from history state (fast path)
     await expect(page.locator(S.textarea)).toHaveValue(original);
 
     await expectEnabled(page, S.saveBtn);
@@ -204,8 +203,8 @@ test.describe('Paste lifecycle', () => {
     await waitForPresentingMode(page);
 
     await page.locator(S.duplicateBtn).click();
-    await page.waitForURL(/\/testkey0\/edit/);
     await waitForEditingMode(page);
+    await expect(page).toHaveURL(/\/testkey0/);
 
     await page.locator(S.textarea).fill(altered);
     await page.locator(S.saveBtn).click();
@@ -220,7 +219,7 @@ test.describe('Paste lifecycle', () => {
 
   // -- 9. Back from fork save ------------------------------------------------
 
-  test('9 - back from fork save returns to edit URL with original content', async ({ page }) => {
+  test('9 - back from fork save returns to presenting view of source doc', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
 
@@ -233,63 +232,54 @@ test.describe('Paste lifecycle', () => {
     await waitForPresentingMode(page);
 
     await page.locator(S.duplicateBtn).click();
-    await page.waitForURL(/\/testkey0\/edit/);
+    await waitForEditingMode(page);
     await page.locator(S.textarea).fill(altered);
 
     await page.locator(S.saveBtn).click();
     await page.waitForURL(/\/testkey1/);
     await waitForPresentingMode(page);
 
-    await page.goBack();
-    await page.waitForURL(/\/testkey0\/edit/);
-    await waitForEditingMode(page);
-
-    // --- Known limitation (Bug C3 variant) ---
-    // The textarea shows `original`, not `altered`.
-    // The history entry for /testkey0/edit was created by the duplicate push
-    // with state = { content: original, key: testkey0 }. The user typed
-    // `altered` in the DOM but that was never persisted back to history state.
-    // After fixing Bug C3, this assertion should become: toHaveValue(altered)
-    await expect(page.locator(S.textarea)).toHaveValue(original);
-    // TODO (Bug C3 variant): After fix, expect textarea to contain altered content
-  });
-
-  // -- 10. Back to pre-fork state --------------------------------------------
-
-  test('10 - second back from fork returns to pre-fork presented state', async ({ page }) => {
-    await setupMockApi(page);
-    await page.goto('/');
-
-    const original = 'const original = true;';
-    const altered = 'const altered = "yes, very much so";';
-
-    await page.locator(S.textarea).fill(original);
-    await page.locator(S.saveBtn).click();
-    await page.waitForURL(/\/testkey0/);
-    await waitForPresentingMode(page);
-
-    await page.locator(S.duplicateBtn).click();
-    await page.waitForURL(/\/testkey0\/edit/);
-    await page.locator(S.textarea).fill(altered);
-
-    await page.locator(S.saveBtn).click();
-    await page.waitForURL(/\/testkey1/);
-    await waitForPresentingMode(page);
-
-    // Back once: editing mode at /testkey0/edit
-    await page.goBack();
-    await page.waitForURL(/\/testkey0\/edit/);
-    await waitForEditingMode(page);
-
-    // Back twice: presenting mode at /testkey0
     await page.goBack();
     await page.waitForURL(/\/testkey0/);
     await waitForPresentingMode(page);
 
     await expect(page.locator(S.boxCode)).toContainText('original');
+  });
 
-    expect(page.url()).toMatch(/testkey0/);
-    expect(page.url()).not.toMatch(/testkey1/);
+  // -- 10. Back to pre-fork state --------------------------------------------
+
+  test('10 - back from fork returns to presenting source doc, second back to home', async ({
+    page,
+  }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+
+    const original = 'const original = true;';
+    const altered = 'const altered = "yes, very much so";';
+
+    await page.locator(S.textarea).fill(original);
+    await page.locator(S.saveBtn).click();
+    await page.waitForURL(/\/testkey0/);
+    await waitForPresentingMode(page);
+
+    await page.locator(S.duplicateBtn).click();
+    await waitForEditingMode(page);
+    await page.locator(S.textarea).fill(altered);
+
+    await page.locator(S.saveBtn).click();
+    await page.waitForURL(/\/testkey1/);
+    await waitForPresentingMode(page);
+
+    // Back once: presenting mode at /testkey0 (source doc)
+    await page.goBack();
+    await page.waitForURL(/\/testkey0/);
+    await waitForPresentingMode(page);
+    await expect(page.locator(S.boxCode)).toContainText('original');
+
+    // Back twice: new editor at /
+    await page.goBack();
+    await page.waitForURL('/');
+    await waitForEditingMode(page);
   });
 
   // -- 11. New from presenting -----------------------------------------------
@@ -369,8 +359,8 @@ test.describe('Paste lifecycle', () => {
     await waitForPresentingMode(page);
 
     await page.keyboard.press('Control+d');
-    await page.waitForURL(/\/testkey0\/edit/);
     await waitForEditingMode(page);
+    await expect(page).toHaveURL(/\/testkey0/); // no /edit suffix
     await expect(page.locator(S.textarea)).toHaveValue('to be forked');
   });
 
