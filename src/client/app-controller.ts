@@ -131,17 +131,16 @@ export class AppController {
       }
     }
 
+    if (pushState) {
+      this.history.push('/');
+    }
+
     this.transitions.run(() => {
       // Update model
       this.document.reset();
 
       // Update state
       this.lifecycleState = 'editing';
-
-      // Update history
-      if (pushState) {
-        this.history.push('/');
-      }
 
       // Render
       this.view.renderFullState(this.document, 'editing');
