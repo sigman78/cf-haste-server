@@ -78,6 +78,12 @@ export class AppController {
    */
   init(): void {
     this.view.init();
+    window.addEventListener('beforeunload', (e) => {
+      if (this.lifecycleState === 'editing' && this.document.getContent().trim()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
     this.history.resolve();
   }
 
@@ -114,6 +120,14 @@ export class AppController {
     // Guard: can't create new while loading/saving
     if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
       return;
+    }
+
+    // Bug C3 fix: persist draft to current history entry before navigating away
+    if (pushState && this.lifecycleState === 'editing') {
+      const draft = this.document.getContent();
+      if (draft) {
+        this.history.replace(window.location.pathname, { content: draft });
+      }
     }
 
     this.transitions.run(() => {
@@ -154,6 +168,7 @@ export class AppController {
     try {
       // Update state
       this.lifecycleState = 'saving';
+      this.view.showProgress();
 
       // Perform save (async)
       const result = await this.storage.save(this.document.serialize());
@@ -166,6 +181,9 @@ export class AppController {
 
       // Update state
       this.lifecycleState = 'presenting';
+      setTimeout(() => {
+        this.view.hideProgress();
+      }, 500);
 
       // Build path with extension
       let path = result.key;
@@ -173,6 +191,9 @@ export class AppController {
         const ext = getExtensionForLanguage(language);
         path += '.' + ext;
       }
+
+      // Bug C3 fix: persist draft to current history entry before navigating to saved doc
+      this.history.replace(window.location.pathname, { content: content });
 
       // Push new history entry
       this.history.push('/' + path);
@@ -185,11 +206,11 @@ export class AppController {
       console.error('Save failed:', err);
 
       // Fallback: stay in editing mode
+      this.view.hideProgress();
       this.lifecycleState = 'editing';
       this.view.renderUIState(this.document.getState(), 'editing');
 
-      // TODO: Show error to user
-      alert('Failed to save document. Please try again.');
+      this.view.showError('Failed to save. Please try again.');
     }
   }
 
@@ -252,11 +273,9 @@ export class AppController {
       // Fallback: show new document
       this.lifecycleState = 'editing';
       this.document.reset();
-      this.history.push('/');
+      this.history.replace('/');
+      this.view.showError('Document not found.');
       this.view.renderFullState(this.document.getState(), 'editing');
-
-      // TODO: Show error to user (optional)
-      // alert('Document not found');
     }
   }
 
@@ -277,6 +296,13 @@ export class AppController {
    */
   private handleNew(): void {
     if (this.lifecycleState === 'editing' || this.lifecycleState === 'presenting') {
+      if (
+        this.lifecycleState === 'editing' &&
+        this.document.getContent().trim() &&
+        !window.confirm('Discard unsaved changes?')
+      ) {
+        return;
+      }
       this.newDocument(true);
     }
   }

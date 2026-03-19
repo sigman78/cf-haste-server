@@ -4,6 +4,8 @@ export interface MockStore {
   get(key: string): string | undefined;
   set(key: string, content: string): void;
   lastKey(): string | undefined;
+  failNextSave(): void;
+  failNextLoad(): void;
 }
 
 /**
@@ -19,17 +21,30 @@ export async function setupMockApi(page: Page): Promise<MockStore> {
   const docs = new Map<string, string>();
   let counter = 0;
   let lastSavedKey: string | undefined;
+  let saveShouldFail = false;
+  let loadShouldFail = false;
 
   const store: MockStore = {
     get: (key) => docs.get(key),
     set: (key, content) => docs.set(key, content),
     lastKey: () => lastSavedKey,
+    failNextSave: () => {
+      saveShouldFail = true;
+    },
+    failNextLoad: () => {
+      loadShouldFail = true;
+    },
   };
 
   // POST /documents -- create new paste
   await page.route('**/documents', async (route) => {
     if (route.request().method() !== 'POST') {
       await route.continue();
+      return;
+    }
+    if (saveShouldFail) {
+      saveShouldFail = false;
+      await route.fulfill({ status: 500, body: 'Internal Server Error' });
       return;
     }
     const content = route.request().postData() ?? '';
@@ -47,6 +62,11 @@ export async function setupMockApi(page: Page): Promise<MockStore> {
   await page.route('**/documents/**', async (route) => {
     if (route.request().method() !== 'GET') {
       await route.continue();
+      return;
+    }
+    if (loadShouldFail) {
+      loadShouldFail = false;
+      await route.fulfill({ status: 500, body: 'Server Error' });
       return;
     }
     const url = new URL(route.request().url());

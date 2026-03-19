@@ -1,3 +1,54 @@
+#progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: #d33682;
+    z-index: 2001;
+    transition: width 0.8s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+#progress-bar.running {
+    opacity: 1;
+    width: 100%;
+    transition: width 0.5s cubic-bezier(0.1, 0.05, 0.1, 1), opacity 0.1s ease;
+}
+
+#progress-bar.done {
+    opacity: 0;
+    width: 100%;
+    transition: width 0.1s ease, opacity 0.15s ease 0.15s;
+}
+
+#progress-bar.clear {
+    opacity: 0;
+    width: 0%;
+}
+
+#toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #a31515;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 3px;
+    font-family: Helvetica, sans-serif;
+    font-size: 13px;
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+#toast.visible {
+    opacity: 1;
+}
+
 html, body {
 	height: 100%;
 	margin: 0;
@@ -23,6 +74,9 @@ textarea {
 	outline: none;
 	resize: none;
 	font-size: 13px;
+	field-sizing: content;
+	tab-size: 2;
+	scrollbar-width: thin; 
 }
 
 /* code box when locked */

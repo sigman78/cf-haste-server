@@ -101,14 +101,9 @@ test.describe('Paste lifecycle', () => {
     await page.waitForURL('/');
 
     await waitForEditingMode(page);
-    await expectDisabled(page, S.saveBtn);
+    await expectEnabled(page, S.saveBtn);
 
-    // --- Known bug C3 ---
-    // Draft content is lost on back because newDocument() does not write
-    // the current textarea value into the navigation history state before push.
-    // After fix, this assertion should change to: toHaveValue('const x = 1;')
-    await expect(page.locator(S.textarea)).toHaveValue('');
-    // TODO (Bug C3): After fix, expect textarea to restore draft on back nav
+    await expect(page.locator(S.textarea)).toHaveValue('const x = 1;');
   });
 
   // -- 5. Forward navigation restores presented paste ------------------------
@@ -310,6 +305,7 @@ test.describe('Paste lifecycle', () => {
     await page.goto('/');
 
     await page.locator(S.textarea).fill('draft content not saved');
+    page.once('dialog', (dialog) => dialog.accept());
     await page.locator(S.newBtn).click();
 
     await page.waitForURL('/');
@@ -401,5 +397,62 @@ test.describe('Paste lifecycle', () => {
 
     await waitForPresentingMode(page);
     await expect(page.locator(S.boxCode)).toContainText('pre-populated');
+  });
+
+  // -- 19. Save failure shows toast ------------------------------------------
+
+  test('19 - save failure shows error toast and stays in editing mode', async ({ page }) => {
+    const store = await setupMockApi(page);
+    await page.goto('/');
+
+    await page.locator(S.textarea).fill('some content');
+    store.failNextSave();
+    await page.locator(S.saveBtn).click();
+
+    await expect(page).toHaveURL('/');
+    await waitForEditingMode(page);
+
+    await expect(page.locator('#toast')).toBeVisible();
+    await expect(page.locator('#toast')).toContainText('Failed to save');
+  });
+
+  // -- 20. Load failure shows toast and redirects to home --------------------
+
+  test('20 - load failure shows error toast and redirects to home', async ({ page }) => {
+    const store = await setupMockApi(page);
+    store.failNextLoad();
+
+    await page.goto('/somedocument');
+
+    await page.waitForURL('/');
+    await waitForEditingMode(page);
+
+    await expect(page.locator('#toast')).toBeVisible();
+    await expect(page.locator('#toast')).toContainText('Document not found');
+  });
+
+  // -- 21. Back after missing-doc redirect returns to previous paste ----------
+
+  test('21 - back after missing-doc redirect returns to saved paste', async ({ page }) => {
+    const store = await setupMockApi(page);
+    store.set('gooddoc', 'hello world');
+
+    // Start at a valid document
+    await page.goto('/gooddoc');
+    await waitForPresentingMode(page);
+
+    // Navigate to a non-existent document (simulates user typing a bad URL)
+    await page.goto('/notexist');
+    await page.waitForURL('/');
+    await waitForEditingMode(page);
+
+    // Toast shown
+    await expect(page.locator('#toast')).toBeVisible();
+
+    // Back should return to the good doc, not loop
+    await page.goBack();
+    await page.waitForURL(/\/gooddoc/);
+    await waitForPresentingMode(page);
+    await expect(page.locator(S.boxCode)).toContainText('hello world');
   });
 });

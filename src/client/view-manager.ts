@@ -34,6 +34,9 @@ export class ViewManager {
   private code: HTMLElement;
   private appName: string;
   private callbacks?: ViewCallbacks;
+  private toastTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly isMac: boolean =
+    /Mac|iPhone|iPad|iPod/.test(navigator.platform) || navigator.userAgent.includes('Mac');
 
   constructor(options: RenderOptions) {
     this.appName = options.appName;
@@ -101,12 +104,48 @@ export class ViewManager {
   /**
    * Render metadata only (during editing - don't touch textarea)
    */
-  renderUIState(
-    state: DocumentState,
-    mode: 'editing' | 'presenting'
-  ): void {
+  renderUIState(state: DocumentState, mode: 'editing' | 'presenting'): void {
     this.updateButtons(state, mode);
     this.updateTitle(state);
+  }
+
+  /**
+   * Show error toast message
+   */
+  showError(message: string): void {
+    const toast = document.getElementById('toast')!;
+    toast.textContent = message;
+    toast.classList.add('visible');
+    if (this.toastTimer !== null) clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => {
+      toast.classList.remove('visible');
+      this.toastTimer = null;
+    }, 4000);
+  }
+
+  /**
+   * Show saving progress bar
+   */
+  showProgress(): void {
+    const bar = document.getElementById('progress-bar')!;
+    bar.classList.remove('done', 'clear');
+    // bar.style.width = '0%';
+    bar.getBoundingClientRect();
+    bar.classList.add('running');
+  }
+
+  /**
+   * Hide saving progress bar
+   */
+  hideProgress(): void {
+    const bar = document.getElementById('progress-bar')!;
+    bar.classList.remove('running');
+    bar.classList.add('done');
+
+    setTimeout(() => {
+      bar.classList.remove('done');
+      bar.classList.add('clear');
+    }, 500);
   }
 
   /**
@@ -159,30 +198,31 @@ export class ViewManager {
    * Setup button event listeners
    */
   private setupButtons(): void {
+    const mod = 'ctrl';
     const buttons = [
       {
         selector: '.save',
         action: () => this.callbacks?.onSave(),
         label: 'Save',
-        shortcut: 'control + s',
+        shortcut: `${mod} + s`,
       },
       {
         selector: '.new',
         action: () => this.callbacks?.onNew(),
         label: 'New',
-        shortcut: 'control + n',
+        shortcut: `${mod} + n`,
       },
       {
         selector: '.duplicate',
         action: () => this.callbacks?.onDuplicate(),
         label: 'Duplicate & Edit',
-        shortcut: 'control + d',
+        shortcut: `${mod} + d`,
       },
       {
         selector: '.twitter',
         action: () => this.callbacks?.onTwitter(),
         label: 'Twitter',
-        shortcut: 'control + t',
+        shortcut: `${mod} + t`,
       },
     ];
 
@@ -226,25 +266,26 @@ export class ViewManager {
    */
   private setupKeyboardShortcuts(): void {
     document.body.addEventListener('keydown', (evt) => {
-      // Ctrl+S or Ctrl+L: Save
-      if (evt.ctrlKey && (evt.keyCode === 76 || evt.keyCode === 83)) {
-        evt.preventDefault();
-        this.callbacks?.onSave();
-      }
-      // Ctrl+N: New
-      else if (evt.ctrlKey && evt.keyCode === 78) {
-        evt.preventDefault();
-        this.callbacks?.onNew();
-      }
-      // Ctrl+D: Duplicate
-      else if (evt.ctrlKey && evt.keyCode === 68) {
-        evt.preventDefault();
-        this.callbacks?.onDuplicate();
-      }
-      // Ctrl+T: Twitter
-      else if (evt.ctrlKey && evt.keyCode === 84) {
-        evt.preventDefault();
-        this.callbacks?.onTwitter();
+      const hot = evt.ctrlKey;
+      if (!hot) return;
+      switch (evt.key.toLowerCase()) {
+        case 's':
+        case 'l':
+          evt.preventDefault();
+          this.callbacks?.onSave();
+          break;
+        case 'n':
+          evt.preventDefault();
+          this.callbacks?.onNew();
+          break;
+        case 'd':
+          evt.preventDefault();
+          this.callbacks?.onDuplicate();
+          break;
+        case 't':
+          evt.preventDefault();
+          this.callbacks?.onTwitter();
+          break;
       }
     });
   }
@@ -255,7 +296,7 @@ export class ViewManager {
   private setupTextareaListeners(): void {
     // Tab key: insert 2 spaces
     this.textarea.addEventListener('keydown', (evt) => {
-      if (evt.keyCode === 9) {
+      if (evt.key === 'Tab') {
         evt.preventDefault();
         const myValue = '  ';
         const startPos = this.textarea.selectionStart;
