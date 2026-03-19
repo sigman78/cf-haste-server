@@ -69,7 +69,8 @@ body {
     width: 100%;
     font-family: monospace;
     outline: none;
-    font-size: 13px;
+    --editor-zoom: 1;
+    font-size: calc(13px * var(--editor-zoom));
     white-space: pre-wrap;
     word-break: break-all;
     tab-size: 2;
@@ -102,6 +103,7 @@ body {
 	padding: 5px;
 	text-align: center;
 	background: #00222b;
+	font-size: 0; /* fix safari font-size dependance */
 }
 
 #box2 {
@@ -191,4 +193,31 @@ body {
 ::view-transition-group(root) {
   animation-duration: 0.2s;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+/*
+::view-transition-old(root) {
+	animation: none;
+}
+
+::view-transition-new(root) {
+	animation: wipe-in 0.3s forwards;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes wipe-in {
+	from {
+		clip-path: inset(0 0 100% 0);
+	}
+	to {
+		clip-path: inset(0 0 0 0);
+	}
+}
+*/
+
+@media (prefers-reduced-motion: no-preference) {
+	@view-transition {
+		navigation: auto;
+	}
 }
