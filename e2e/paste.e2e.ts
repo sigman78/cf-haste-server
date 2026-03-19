@@ -453,4 +453,63 @@ test.describe('Paste lifecycle', () => {
     await waitForPresentingMode(page);
     await expect(page.locator(S.editor)).toContainText('hello world');
   });
+
+  // -- 22. scrollRestoration is set to manual ---------------------------------
+
+  test('22 - history.scrollRestoration is set to manual', async ({ page }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    const scrollRestoration = await page.evaluate(() => window.history.scrollRestoration);
+    expect(scrollRestoration).toBe('manual');
+  });
+
+  // -- 23. Back navigation restores scroll position ---------------------------
+
+  test('23 - back navigation restores scroll position', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 200 });
+    const store = await setupMockApi(page);
+    store.set('longdoc', 'line\n'.repeat(100));
+
+    await page.goto('/longdoc');
+    await waitForPresentingMode(page);
+
+    // Scroll down
+    await page.evaluate(() => window.scrollTo(0, 300));
+    expect(await page.evaluate(() => window.scrollY)).toBe(300);
+
+    // Navigate to new doc (scroll goes to 0)
+    await page.locator(S.newBtn).click();
+    await page.waitForURL('/');
+    await waitForEditingMode(page);
+
+    // Back - should restore scroll
+    await page.goBack();
+    await waitForPresentingMode(page);
+
+    expect(await page.evaluate(() => window.scrollY)).toBe(300);
+  });
+
+  // -- 24. Save scrolls to top when scrollToTopOnSave is true -----------------
+
+  test('24 - after save, page is scrolled to top', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 200 });
+    await setupMockApi(page);
+
+    // Fill editor with enough content to be taller than the viewport
+    const longContent = 'const x = 1;\n'.repeat(50);
+    await page.goto('/');
+    await page.locator(S.editor).fill(longContent);
+
+    // Scroll down in edit mode
+    await page.evaluate(() => window.scrollTo(0, 200));
+    expect(await page.evaluate(() => window.scrollY)).toBe(200);
+
+    // Save
+    await page.locator(S.saveBtn).click();
+    await page.waitForURL(/\/testkey0/);
+    await waitForPresentingMode(page);
+
+    // Should be scrolled to top
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
 });
