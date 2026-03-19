@@ -26,6 +26,7 @@ type HistoryState = { content?: string };
 export interface AppConfig {
   appName: string;
   enableTwitter: boolean;
+  scrollToTopOnSave?: boolean; // default true
 }
 
 export class AppController {
@@ -38,8 +39,11 @@ export class AppController {
 
   // State machine
   private lifecycleState: DocumentLifecycleState = 'editing';
+  private scrollToTopOnSave: boolean;
 
   constructor(options: AppConfig) {
+    this.scrollToTopOnSave = options.scrollToTopOnSave !== false;
+
     // Initialize modules
     this.document = new Paste();
     this.storage = new StorageService();
@@ -199,6 +203,9 @@ export class AppController {
       this.transitions.run(() => {
         this.view.renderFullState(this.document, 'presenting', highlighted);
       });
+      if (this.scrollToTopOnSave) {
+        window.scrollTo(0, 0);
+      }
     } catch (err) {
       console.error('Save failed:', err);
 
