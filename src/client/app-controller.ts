@@ -8,7 +8,7 @@
  * - Manages async operations internally with consistent error handling
  */
 
-import { DocumentModel, isLoaded } from './document';
+import { Paste } from './paste';
 import { StorageService } from './storage';
 import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
@@ -30,7 +30,7 @@ export interface AppConfig {
 
 export class AppController {
   // Module dependencies
-  private document: DocumentModel;
+  private document: Paste;
   private storage: StorageService;
   private view: ViewManager;
   private transitions: TransitionManager;
@@ -41,7 +41,7 @@ export class AppController {
 
   constructor(options: AppConfig) {
     // Initialize modules
-    this.document = new DocumentModel();
+    this.document = new Paste();
     this.storage = new StorageService();
     this.view = new ViewManager({
       appName: options.appName,
@@ -75,7 +75,7 @@ export class AppController {
   init(): void {
     this.view.init();
     window.addEventListener('beforeunload', (e) => {
-      if (this.lifecycleState === 'editing' && this.document.getContent().trim()) {
+      if (this.lifecycleState === 'editing' && this.document.content.trim()) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -99,14 +99,14 @@ export class AppController {
       // Check history state for restored content
       const historyState = state as HistoryState | undefined;
       if (historyState?.content) {
-        this.document.setContent(historyState.content);
+        this.document.content = historyState.content;
       }
 
       // Update state
       this.lifecycleState = 'editing';
 
       // Render
-      this.view.renderFullState(this.document.getState(), 'editing');
+      this.view.renderFullState(this.document, 'editing');
     });
   }
 
@@ -121,7 +121,7 @@ export class AppController {
 
     // Bug C3 fix: persist draft to current history entry before navigating away
     if (pushState && this.lifecycleState === 'editing') {
-      const draft = this.document.getContent();
+      const draft = this.document.content;
       if (draft) {
         this.history.replace(window.location.pathname, { content: draft });
       }
@@ -140,7 +140,7 @@ export class AppController {
       }
 
       // Render
-      this.view.renderFullState(this.document.getState(), 'editing');
+      this.view.renderFullState(this.document, 'editing');
     });
   }
 
@@ -160,7 +160,7 @@ export class AppController {
     }
 
     // Update content from DOM
-    this.document.setContent(content);
+    this.document.content = content;
 
     try {
       // Update state
@@ -168,7 +168,7 @@ export class AppController {
       this.view.showProgress();
 
       // Perform save (async)
-      const result = await this.storage.save(this.document.getContent());
+      const result = await this.storage.save(this.document.content);
 
       // Highlight content and detect language in a single pass
       const { highlighted, language } = highlightContent(content);
@@ -197,7 +197,7 @@ export class AppController {
 
       // Render with transition
       this.transitions.run(() => {
-        this.view.renderFullState(this.document.getState(), 'presenting', highlighted);
+        this.view.renderFullState(this.document, 'presenting', highlighted);
       });
     } catch (err) {
       console.error('Save failed:', err);
@@ -205,7 +205,7 @@ export class AppController {
       // Fallback: stay in editing mode
       this.view.hideProgress();
       this.lifecycleState = 'editing';
-      this.view.renderUIState(this.document.getState(), 'editing');
+      this.view.renderUIState(this.document, 'editing');
 
       this.view.showError('Failed to save. Please try again.');
     }
@@ -249,17 +249,16 @@ export class AppController {
 
       // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
       if (defaultMode === 'presenting' && !path.includes('.')) {
-        const state = this.document.getState();
-        if (state.language) {
-          const langExt = getExtensionForLanguage(state.language);
-          this.history.replace(`/${state.key}.${langExt}`);
+        if (this.document.language) {
+          const langExt = getExtensionForLanguage(this.document.language);
+          this.history.replace(`/${this.document.key}.${langExt}`);
         }
       }
 
       // Render with transition
       this.transitions.run(() => {
         this.view.renderFullState(
-          this.document.getState(),
+          this.document,
           defaultMode,
           defaultMode === 'presenting' ? highlightResult.highlighted : undefined
         );
@@ -272,7 +271,7 @@ export class AppController {
       this.document.reset();
       this.history.replace('/');
       this.view.showError('Document not found.');
-      this.view.renderFullState(this.document.getState(), 'editing');
+      this.view.renderFullState(this.document, 'editing');
     }
   }
 
@@ -295,7 +294,7 @@ export class AppController {
     if (this.lifecycleState === 'editing' || this.lifecycleState === 'presenting') {
       if (
         this.lifecycleState === 'editing' &&
-        this.document.getContent().trim() &&
+        this.document.content.trim() &&
         !window.confirm('Discard unsaved changes?')
       ) {
         return;
@@ -309,13 +308,13 @@ export class AppController {
    */
   private handleDuplicate(): void {
     if (this.lifecycleState === 'presenting') {
-      const content = this.document.getContent();
+      const content = this.document.content;
       this.transitions.run(() => {
         this.document.reset();
-        this.document.setContent(content);
+        this.document.content = content;
         this.lifecycleState = 'editing';
         // URL stays at current doc — no history push
-        this.view.renderFullState(this.document.getState(), 'editing');
+        this.view.renderFullState(this.document, 'editing');
       });
     }
   }
@@ -335,9 +334,9 @@ export class AppController {
   private handleContentInput(content: string): void {
     // During editing phase, textarea owns content
     if (this.lifecycleState === 'editing') {
-      this.document.setContent(content);
+      this.document.content = content;
       // Update button states
-      this.view.renderUIState(this.document.getState(), 'editing');
+      this.view.renderUIState(this.document, 'editing');
     }
   }
 }
