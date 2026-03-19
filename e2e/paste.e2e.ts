@@ -48,6 +48,7 @@ test.describe('Paste lifecycle', () => {
   test('2 - typing content enables the Save button', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await expectDisabled(page, S.saveBtn);
     await page.locator(S.editor).fill('hello world');
@@ -63,6 +64,7 @@ test.describe('Paste lifecycle', () => {
   test('3 - saving a paste transitions to presenting mode', async ({ page }) => {
     const store = await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     const content1 = 'function hello() {\n  return "world";\n}';
     await page.locator(S.editor).fill(content1);
@@ -110,6 +112,7 @@ test.describe('Paste lifecycle', () => {
   test('5 - forward after back restores presenting mode and content', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     const content1 = 'const greeting = "hello";';
     await page.locator(S.editor).fill(content1);
@@ -143,6 +146,7 @@ test.describe('Paste lifecycle', () => {
   test('6 - full back/forward cycle preserves URL and content', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).fill('let x = 42;');
     await page.locator(S.saveBtn).click();
@@ -165,6 +169,7 @@ test.describe('Paste lifecycle', () => {
   test('7 - duplicate transitions to editing with original content', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     const original = 'const original = true;';
     await page.locator(S.editor).fill(original);
@@ -187,6 +192,7 @@ test.describe('Paste lifecycle', () => {
   test('8 - saving a fork creates a new URL with altered content', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     const original = 'const original = true;';
     const altered = 'const altered = "yes, very much so";';
@@ -216,6 +222,7 @@ test.describe('Paste lifecycle', () => {
   test('9 - back from fork save returns to presenting view of source doc', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     const original = 'const original = true;';
     const altered = 'const altered = "yes, very much so";';
@@ -247,6 +254,7 @@ test.describe('Paste lifecycle', () => {
   }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     const original = 'const original = true;';
     const altered = 'const altered = "yes, very much so";';
@@ -281,6 +289,7 @@ test.describe('Paste lifecycle', () => {
   test('11 - New button from presenting state returns to empty editor', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).fill('some content');
     await page.locator(S.saveBtn).click();
@@ -302,6 +311,7 @@ test.describe('Paste lifecycle', () => {
   test('12 - New button from editing state clears content and resets URL', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).fill('draft content not saved');
     page.once('dialog', (dialog) => dialog.accept());
@@ -317,6 +327,7 @@ test.describe('Paste lifecycle', () => {
   test('13 - Ctrl+S triggers save', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).fill('shortcut test');
     await page.locator(S.editor).press('Control+s');
@@ -330,6 +341,7 @@ test.describe('Paste lifecycle', () => {
   test('14 - Ctrl+N from presenting creates new document', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).fill('content');
     await page.locator(S.saveBtn).click();
@@ -347,6 +359,7 @@ test.describe('Paste lifecycle', () => {
   test('15 - Ctrl+D from presenting duplicates to editor', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).fill('to be forked');
     await page.locator(S.saveBtn).click();
@@ -364,6 +377,7 @@ test.describe('Paste lifecycle', () => {
   test('16 - Tab key inserts two spaces in textarea', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).click();
     await page.locator(S.editor).press('Tab');
@@ -403,6 +417,7 @@ test.describe('Paste lifecycle', () => {
   test('19 - save failure shows error toast and stays in editing mode', async ({ page }) => {
     const store = await setupMockApi(page);
     await page.goto('/');
+    await waitForEditingMode(page);
 
     await page.locator(S.editor).fill('some content');
     store.failNextSave();
@@ -499,6 +514,7 @@ test.describe('Paste lifecycle', () => {
     // Fill editor with enough content to be taller than the viewport
     const longContent = 'const x = 1;\n'.repeat(50);
     await page.goto('/');
+    await waitForEditingMode(page);
     await page.locator(S.editor).fill(longContent);
 
     // Scroll down in edit mode
