@@ -9,7 +9,7 @@
  */
 
 import type { GetResponse, SaveResponse } from '../shared/types';
-import type { LoadedDocumentState } from './document';
+import type { DocumentState } from './document';
 
 /**
  * Result from saving a document (contains key, optionally language)
@@ -25,7 +25,7 @@ export class StorageService {
    * @throws Error if fetch fails or document not found
    * @returns LoadedDocumentState with guaranteed key
    */
-  async load(key: string): Promise<LoadedDocumentState> {
+  async load(key: string): Promise<DocumentState> {
     const response = await fetch(`/documents/${key}`);
 
     if (!response.ok) {
@@ -50,9 +50,6 @@ export class StorageService {
    * @returns SaveResult with guaranteed key
    */
   async save(content: string): Promise<SaveResult> {
-    if (!content.trim()) {
-      throw new Error('Cannot save empty document');
-    }
 
     const response = await fetch('/documents', {
       method: 'POST',

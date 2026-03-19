@@ -12,7 +12,7 @@ import { DocumentModel, isLoaded } from './document';
 import { StorageService } from './storage';
 import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
-import { Router } from './router';
+import { HistoryManager } from './history-manager';
 import {
   highlightContent,
   getExtensionForLanguage,
@@ -33,7 +33,7 @@ export class AppController {
   private storage: StorageService;
   private view: ViewManager;
   private transitions: TransitionManager;
-  private router: Router;
+  private history: HistoryManager;
 
   // State machine
   private lifecycleState: DocumentLifecycleState = 'editing';
@@ -52,9 +52,8 @@ export class AppController {
       enableTwitter: options.enableTwitter,
     });
     this.transitions = new TransitionManager();
-    this.router = new Router(options.appName);
 
-    // Wire up callbacks
+    // Wire up view callbacks
     this.view.setCallbacks({
       onSave: () => this.handleSave(),
       onNew: () => this.handleNew(),
@@ -63,7 +62,15 @@ export class AppController {
       onContentInput: (content) => this.handleContentInput(content),
     });
 
-    this.router.onRoute((path) => this.handleRoute(path));
+    // Initialize history manager
+    this.history = new HistoryManager();
+    this.history.onNavigate((path, state) => {
+      if (path === '/' || path === '') {
+        this.handleRoot(state);
+      } else {
+        this.loadDocumentByPath(path.slice(1), 'presenting');
+      }
+    });
   }
 
   /**
@@ -71,20 +78,39 @@ export class AppController {
    */
   init(): void {
     this.view.init();
-    this.router.init();
+    window.addEventListener('beforeunload', (e) => {
+      if (this.lifecycleState === 'editing' && this.document.getContent().trim()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+    this.history.resolve();
   }
 
   /**
-   * Handle route changes
+   * Handle root route (/)
    */
-  private handleRoute(path: string): void {
-    if (!path || path === '') {
-      // Home route - new document
-      this.newDocument(false);
-    } else {
-      // Load document
-      this.loadDocumentByPath(path);
+  private handleRoot(state?: unknown): void {
+    // Guard: can't create new while loading/saving
+    if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
+      return;
     }
+
+    this.transitions.run(() => {
+      // Update model
+      this.document.reset();
+
+      // Check history state for restored content
+      if ((state as any)?.content) {
+        this.document.setContent((state as any).content);
+      }
+
+      // Update state
+      this.lifecycleState = 'editing';
+
+      // Render
+      this.view.renderFullState(this.document.getState(), 'editing');
+    });
   }
 
   /**
@@ -96,6 +122,14 @@ export class AppController {
       return;
     }
 
+    // Bug C3 fix: persist draft to current history entry before navigating away
+    if (pushState && this.lifecycleState === 'editing') {
+      const draft = this.document.getContent();
+      if (draft) {
+        this.history.replace(window.location.pathname, { content: draft });
+      }
+    }
+
     this.transitions.run(() => {
       // Update model
       this.document.reset();
@@ -103,9 +137,9 @@ export class AppController {
       // Update state
       this.lifecycleState = 'editing';
 
-      // Update router
+      // Update history
       if (pushState) {
-        this.router.navigate('', 'push');
+        this.history.push('/');
       }
 
       // Render
@@ -134,6 +168,7 @@ export class AppController {
     try {
       // Update state
       this.lifecycleState = 'saving';
+      this.view.showProgress();
 
       // Perform save (async)
       const result = await this.storage.save(this.document.serialize());
@@ -141,11 +176,14 @@ export class AppController {
       // Highlight content and detect language in a single pass
       const { highlighted, language } = highlightContent(content);
 
-      // Update model
-      this.document.markSaved(result.key, language);
+      // Update document
+      this.document.update({ key: result.key, language: language });
 
       // Update state
       this.lifecycleState = 'presenting';
+      setTimeout(() => {
+        this.view.hideProgress();
+      }, 500);
 
       // Build path with extension
       let path = result.key;
@@ -154,8 +192,11 @@ export class AppController {
         path += '.' + ext;
       }
 
-      // Update router
-      this.router.navigate(path, 'push');
+      // Bug C3 fix: persist draft to current history entry before navigating to saved doc
+      this.history.replace(window.location.pathname, { content: content });
+
+      // Push new history entry
+      this.history.push('/' + path);
 
       // Render with transition
       this.transitions.run(() => {
@@ -165,18 +206,21 @@ export class AppController {
       console.error('Save failed:', err);
 
       // Fallback: stay in editing mode
+      this.view.hideProgress();
       this.lifecycleState = 'editing';
-      this.view.renderMetadata(this.document.getState(), 'editing');
+      this.view.renderUIState(this.document.getState(), 'editing');
 
-      // TODO: Show error to user
-      alert('Failed to save document. Please try again.');
+      this.view.showError('Failed to save. Please try again.');
     }
   }
 
   /**
    * Load document by path (key with optional extension)
    */
-  private async loadDocumentByPath(path: string): Promise<void> {
+  private async loadDocumentByPath(
+    path: string,
+    defaultMode: 'editing' | 'presenting'
+  ): Promise<void> {
     // Guard: can't load while loading/saving
     if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
       return;
@@ -186,40 +230,32 @@ export class AppController {
     const parts = path.split('.', 2);
     const key = parts[0];
     const ext = parts[1];
-    const language = ext ? getLanguageForExtension(ext) : undefined;
+    const urlLanguage = ext ? getLanguageForExtension(ext) : undefined;
 
     try {
-      // Update state
       this.lifecycleState = 'loading';
 
-      // Perform load (async)
+      // Load from storage
       const result = await this.storage.load(key);
 
       // Highlight content (with language hint if available)
-      const highlightResult = highlightContent(result.content, language || result.language);
+      const highlightResult = highlightContent(result.content, urlLanguage || result.language);
 
       // Update model with the final language (detected or provided)
       this.document.hydrate({
         content: result.content,
         key: result.key,
-        language: highlightResult.language || language || result.language,
+        language: highlightResult.language || urlLanguage || result.language,
       });
 
-      // Update state
-      this.lifecycleState = 'presenting';
+      this.lifecycleState = defaultMode;
 
-      // Build path with extension
-      const state = this.document.getState();
-      if (isLoaded(state)) {
-        let fullPath = state.key;
+      // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
+      if (defaultMode === 'presenting' && !path.includes('.')) {
+        const state = this.document.getState();
         if (state.language) {
           const ext = getExtensionForLanguage(state.language);
-          fullPath += '.' + ext;
-        }
-
-        // Update router if path doesn't match
-        if (path !== fullPath) {
-          this.router.navigate(fullPath, 'push');
+          this.history.replace(`/${state.key}.${ext}`);
         }
       }
 
@@ -227,8 +263,8 @@ export class AppController {
       this.transitions.run(() => {
         this.view.renderFullState(
           this.document.getState(),
-          'presenting',
-          highlightResult.highlighted
+          defaultMode,
+          defaultMode === 'presenting' ? highlightResult.highlighted : undefined
         );
       });
     } catch (err) {
@@ -237,11 +273,9 @@ export class AppController {
       // Fallback: show new document
       this.lifecycleState = 'editing';
       this.document.reset();
-      this.router.navigate('', 'push');
+      this.history.replace('/');
+      this.view.showError('Document not found.');
       this.view.renderFullState(this.document.getState(), 'editing');
-
-      // TODO: Show error to user (optional)
-      // alert('Document not found');
     }
   }
 
@@ -262,6 +296,13 @@ export class AppController {
    */
   private handleNew(): void {
     if (this.lifecycleState === 'editing' || this.lifecycleState === 'presenting') {
+      if (
+        this.lifecycleState === 'editing' &&
+        this.document.getContent().trim() &&
+        !window.confirm('Discard unsaved changes?')
+      ) {
+        return;
+      }
       this.newDocument(true);
     }
   }
@@ -271,20 +312,12 @@ export class AppController {
    */
   private handleDuplicate(): void {
     if (this.lifecycleState === 'presenting') {
-      const content = this.document.duplicate();
-
+      const content = this.document.getContent();
       this.transitions.run(() => {
-        // Reset document
         this.document.reset();
         this.document.setContent(content);
-
-        // Update state
         this.lifecycleState = 'editing';
-
-        // Navigate to home (replace current history entry to avoid empty intermediate state)
-        this.router.navigate('', 'replace');
-
-        // Render with content
+        // URL stays at current doc — no history push
         this.view.renderFullState(this.document.getState(), 'editing');
       });
     }
@@ -307,7 +340,7 @@ export class AppController {
     if (this.lifecycleState === 'editing') {
       this.document.setContent(content);
       // Update button states
-      this.view.renderMetadata(this.document.getState(), 'editing');
+      this.view.renderUIState(this.document.getState(), 'editing');
     }
   }
 }

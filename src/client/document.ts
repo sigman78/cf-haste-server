@@ -9,41 +9,27 @@
  */
 
 /**
- * State for NEW documents (no key yet)
+ * State for documents
  */
-export interface NewDocumentState {
+export interface DocumentState {
   content: string;
+  key?: string;
   language?: string;
 }
-
-/**
- * State for LOADED/SAVED documents (always has key)
- */
-export interface LoadedDocumentState {
-  content: string;
-  key: string;
-  language?: string;
-}
-
-/**
- * Union type for Document model internal state
- */
-export type DocumentState = NewDocumentState | LoadedDocumentState;
 
 /**
  * Type guard to check if document is loaded
  */
-export function isLoaded(doc: DocumentState): doc is LoadedDocumentState {
+export function isLoaded(doc: DocumentState) {
   return 'key' in doc && doc.key !== undefined;
 }
 
-/**
- * Legacy metadata type for backwards compatibility
- */
-export interface DocumentMetaState {
+// Partial<Pick<DocumentState, 'key' | 'content' | 'language'>>
+type DocumentUpdate = {
   key?: string;
+  content?: string;
   language?: string;
-}
+};
 
 export class DocumentModel {
   private state: DocumentState;
@@ -60,10 +46,7 @@ export class DocumentModel {
   }
 
   getKey(): string | undefined {
-    if (isLoaded(this.state)) {
-      return this.state.key;
-    }
-    return undefined;
+    return this.state?.key;
   }
 
   getLanguage(): string | undefined {
@@ -78,6 +61,13 @@ export class DocumentModel {
     return isLoaded(this.state);
   }
 
+  update(update: DocumentUpdate): void {
+    this.state = {
+      ...this.state,
+      ...update,
+    };
+  }
+
   // Setters
   setContent(content: string): void {
     this.state = {
@@ -86,28 +76,12 @@ export class DocumentModel {
     };
   }
 
-  setLanguage(language: string | undefined): void {
-    this.state = {
-      ...this.state,
-      language,
-    };
-  }
-
   // Load from external data (after fetch)
-  hydrate(data: LoadedDocumentState): void {
+  hydrate(data: DocumentState): void {
     this.state = {
       content: data.content,
       key: data.key,
       language: data.language,
-    };
-  }
-
-  // After successful save
-  markSaved(key: string, language?: string): void {
-    this.state = {
-      content: this.state.content,
-      key,
-      language: language || this.state.language,
     };
   }
 
@@ -121,10 +95,5 @@ export class DocumentModel {
     this.state = {
       content: '',
     };
-  }
-
-  // Copy content for duplication
-  duplicate(): string {
-    return this.state.content;
   }
 }
