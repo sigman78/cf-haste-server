@@ -65,7 +65,7 @@ body {
 
 #editor {
     background: transparent;
-    color: #586e75;
+    color: #93a1a1; /* base1 */
     width: 100%;
     font-family: monospace;
     outline: none;
