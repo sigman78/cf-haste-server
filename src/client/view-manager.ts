@@ -25,11 +25,14 @@ export interface ViewCallbacks {
 export interface RenderOptions {
   appName: string;
   enableTwitter: boolean;
+  lineNumbers: boolean;
 }
 
 export class ViewManager {
   private editor: HTMLDivElement;
+  private gutter: HTMLDivElement;
   private appName: string;
+  private lineNumbers: boolean;
   private callbacks?: ViewCallbacks;
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly isMac: boolean =
@@ -43,6 +46,7 @@ export class ViewManager {
   constructor(options: RenderOptions) {
     this.appName = options.appName;
     this.editor = document.getElementById('editor') as HTMLDivElement;
+    this.gutter = document.getElementById('gutter') as HTMLDivElement;
 
     // Hide twitter button if disabled
     if (!options.enableTwitter) {
@@ -50,6 +54,11 @@ export class ViewManager {
       if (twitterBtn) {
         twitterBtn.style.display = 'none';
       }
+    }
+
+    this.lineNumbers = options.lineNumbers;
+    if (!this.lineNumbers) {
+      this.gutter.style.display = 'none';
     }
   }
 
@@ -86,11 +95,15 @@ export class ViewManager {
       this.editor.classList.add('hljs');
       this.editor.innerHTML = highlightedContent;
       this.editor.focus();
+      const lineCount = (highlightedContent.match(/\n/g) ?? []).length + 1;
+      this.updateGutter(lineCount, true);
     } else {
       this.editor.contentEditable = 'plaintext-only';
       this.editor.classList.remove('hljs');
       this.editor.textContent = state.content;
       this.editor.focus();
+      const lineCount = state.content === '' ? 1 : (state.content.match(/\n/g) ?? []).length + 1;
+      this.updateGutter(lineCount, false);
     }
     this.renderUIState(state, mode);
   }
@@ -320,8 +333,25 @@ export class ViewManager {
   }
 
   private applyZoom(): void {
-    this.editor.style.setProperty('--editor-zoom', String(this.editorZoom));
+    const container = document.getElementById('editor-container')!;
+    container.style.setProperty('--editor-zoom', String(this.editorZoom));
     sessionStorage.setItem(this.ZOOM_KEY, String(this.editorZoom));
+  }
+
+  private updateGutter(lineCount: number, presenting: boolean): void {
+    if (!this.lineNumbers) return;
+    const frag = document.createDocumentFragment();
+    for (let i = 1; i <= lineCount; i++) {
+      const el = document.createElement(presenting ? 'a' : 'span');
+      if (presenting) {
+        (el as HTMLAnchorElement).href = `#L${i}`;
+        el.id = `L${i}`;
+      }
+      el.textContent = String(i);
+      frag.appendChild(el);
+    }
+    this.gutter.textContent = '';
+    this.gutter.appendChild(frag);
   }
 
   /**
@@ -363,6 +393,10 @@ export class ViewManager {
       if (this.callbacks?.onContentInput) {
         this.callbacks.onContentInput(this.editor.innerText);
       }
+      const raw = this.editor.innerText;
+      const trimmed = raw.endsWith('\n') ? raw.slice(0, -1) : raw;
+      const lineCount = trimmed === '' ? 1 : (trimmed.match(/\n/g) ?? []).length + 1;
+      this.updateGutter(lineCount, false);
     });
   }
 }
