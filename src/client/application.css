@@ -15,6 +15,7 @@
     /* ui / overlay colors */
     --color-toast-bg:    #a31515;   /* error toast background */
     --color-text-bright: #fff;      /* toast text, tooltip label */
+    --color-line-highlight: rgba(255, 255, 255, 0.03); /* current line highlight */
 
     /* typography */
     --font-editor: monospace;
@@ -96,6 +97,7 @@ body {
     align-items: flex-start;
     --editor-zoom: 1;
     overflow-x: auto;
+    position: relative;
 }
 
 #gutter {
@@ -125,6 +127,23 @@ body {
     color: var(--color-editor-text);
 }
 
+#line-highlight {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: calc(1em * var(--line-height-editor));
+    background: var(--color-line-highlight);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    font-size: calc(var(--font-size-editor) * var(--editor-zoom));
+}
+
+#line-highlight.visible {
+    opacity: 1;
+}
+
 #editor {
     background: transparent;
     color: var(--color-editor-text); /* base1 */
@@ -139,6 +158,8 @@ body {
     scrollbar-width: thin;
     min-height: calc(100vh - 2 * var(--body-padding));
     transition: opacity 0.15s;
+    position: relative;
+    z-index: 1;
 }
 
 #editor:empty::before {

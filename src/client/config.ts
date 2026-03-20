@@ -6,6 +6,7 @@ const defaults: AppConfig = {
   enableTwitter: true,
   scrollToTopOnSave: true,
   lineNumbers: true,
+  highlightCurrentLine: true,
 };
 
 export const config: AppConfig = {

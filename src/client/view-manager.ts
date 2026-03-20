@@ -26,6 +26,7 @@ export interface RenderOptions {
   appName: string;
   enableTwitter: boolean;
   lineNumbers: boolean;
+  highlightCurrentLine: boolean;
 }
 
 export class ViewManager {
@@ -42,6 +43,9 @@ export class ViewManager {
   private readonly ZOOM_MIN = 0.5;
   private readonly ZOOM_MAX = 3.0;
   private editorZoom: number = 1;
+  private lineHighlight: HTMLDivElement | null = null;
+  private highlightCurrentLine: boolean;
+  private currentLine: number = 0;
 
   constructor(options: RenderOptions) {
     this.appName = options.appName;
@@ -59,6 +63,11 @@ export class ViewManager {
     this.lineNumbers = options.lineNumbers;
     if (!this.lineNumbers) {
       this.gutter.style.display = 'none';
+    }
+
+    this.highlightCurrentLine = options.highlightCurrentLine;
+    if (this.highlightCurrentLine) {
+      this.lineHighlight = document.getElementById('line-highlight') as HTMLDivElement;
     }
   }
 
@@ -98,6 +107,7 @@ export class ViewManager {
       this.editor.focus();
       const lineCount = (highlightedContent.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, true);
+      this.resetLineHighlight();
     } else {
       this.editor.contentEditable = 'plaintext-only';
       this.editor.classList.remove('hljs');
@@ -105,6 +115,7 @@ export class ViewManager {
       this.editor.focus();
       const lineCount = state.content === '' ? 1 : (state.content.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, false);
+      this.updateLineHighlight();
     }
     this.renderUIState(state, mode);
   }
@@ -115,6 +126,7 @@ export class ViewManager {
     this.editor.classList.add('is-loading');
     this.editor.textContent = '';
     this.gutter.textContent = '';
+    this.resetLineHighlight();
   }
 
   /**
@@ -345,6 +357,7 @@ export class ViewManager {
     const container = document.getElementById('editor-container')!;
     container.style.setProperty('--editor-zoom', String(this.editorZoom));
     sessionStorage.setItem(this.ZOOM_KEY, String(this.editorZoom));
+    this.updateLineHighlight();
   }
 
   private updateGutter(lineCount: number, presenting: boolean): void {
@@ -361,6 +374,50 @@ export class ViewManager {
     }
     this.gutter.textContent = '';
     this.gutter.appendChild(frag);
+  }
+
+  private getCurrentLineNumber(): number {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return 1;
+
+    const range = sel.getRangeAt(0);
+    if (!this.editor.contains(range.startContainer)) return 1;
+
+    const preRange = document.createRange();
+    preRange.setStart(this.editor, 0);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    const textBefore = preRange.toString();
+    return (textBefore.match(/\n/g) ?? []).length + 1;
+  }
+
+  private updateLineHighlight(): void {
+    if (!this.highlightCurrentLine || !this.lineHighlight) return;
+
+    const isEditing = this.editor.contentEditable === 'plaintext-only';
+    const hasFocus = document.activeElement === this.editor;
+
+    if (!isEditing || !hasFocus) {
+      this.lineHighlight.classList.remove('visible');
+      this.currentLine = 0;
+      return;
+    }
+
+    const lineNumber = this.getCurrentLineNumber();
+    if (lineNumber === this.currentLine) return;
+
+    this.currentLine = lineNumber;
+
+    const lineHeight = parseFloat(getComputedStyle(this.editor).lineHeight);
+    const top = (lineNumber - 1) * lineHeight;
+
+    this.lineHighlight.style.top = `${top}px`;
+    this.lineHighlight.classList.add('visible');
+  }
+
+  private resetLineHighlight(): void {
+    if (!this.highlightCurrentLine || !this.lineHighlight) return;
+    this.lineHighlight.classList.remove('visible');
+    this.currentLine = 0;
   }
 
   /**
@@ -406,6 +463,22 @@ export class ViewManager {
       const trimmed = raw.endsWith('\n') ? raw.slice(0, -1) : raw;
       const lineCount = trimmed === '' ? 1 : (trimmed.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, false);
+      this.updateLineHighlight();
     });
+
+    // Line highlight: track cursor position
+    if (this.highlightCurrentLine) {
+      document.addEventListener('selectionchange', () => {
+        this.updateLineHighlight();
+      });
+
+      this.editor.addEventListener('focus', () => {
+        this.updateLineHighlight();
+      });
+
+      this.editor.addEventListener('blur', () => {
+        this.resetLineHighlight();
+      });
+    }
   }
 }
