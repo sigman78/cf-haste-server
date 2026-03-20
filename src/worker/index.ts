@@ -132,11 +132,9 @@ app.get('*', async (c) => {
   // If path looks like a document key (e.g., /abc123 or /abc123.js or /abc123.js/fork),
   // serve index.html to let the SPA handle routing
   const isDocumentRoute = path.match(/^\/[\w-]+(\.[\w]+)?([\/\w\.-])*$/);
-  const isAssetRoute =
-    path.startsWith('/assets/') ||
-    path.endsWith('.css') ||
-    path.endsWith('.png') ||
-    path.endsWith('.txt');
+  // Actually existing resources should be served as default w/o worker so this is redundant
+  const isAssetRoute = path.startsWith('/assets/');
+  // || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.txt');
 
   if (isDocumentRoute && !isAssetRoute) {
     // Rewrite to index.html for SPA routing
