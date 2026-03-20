@@ -1,10 +1,37 @@
+:root {
+    /* background layers (darkest to lightest) */
+    --color-bg:          #002b36;   /* page/body background (solarized base03) */
+    --color-key-bg:      #00222b;   /* logo box (box1) */
+    --color-nav-bg:      #08323c;   /* button bar (box2) */
+    --color-tooltip-bg:  #173e48;   /* shortcut tooltip (box3) */
+
+    /* content colors */
+    --color-editor-text: #93a1a1;   /* editor text (solarized base1) */
+    --color-placeholder: #586e75;   /* editor placeholder (solarized base01) */
+    --color-icon:        #c4dce3;   /* nav icons + pointer bar + tooltip shortcut */
+    --color-accent:      #d33682;   /* progress bar, logo hover, icon hover (solarized magenta) */
+    --color-logo:        #fdf6e3;   /* logo fill (solarized base3) */
+
+    /* ui / overlay colors */
+    --color-toast-bg:    #a31515;   /* error toast background */
+    --color-text-bright: #fff;      /* toast text, tooltip label */
+
+    /* typography */
+    --font-editor: monospace;
+    --font-ui: Helvetica, sans-serif;
+    --font-size-editor: 13px;       /* editor base size (used in zoom calc) */
+
+    /* layout */
+    --body-padding: 20px;
+}
+
 #progress-bar {
     position: fixed;
     top: 0;
     left: 0;
     height: 3px;
     width: 0%;
-    background: #d33682;
+    background: var(--color-accent);
     z-index: 2001;
     transition: width 0.8s ease, opacity 0.3s ease;
     opacity: 0;
@@ -32,12 +59,12 @@
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: #a31515;
-    color: #fff;
+    background: var(--color-toast-bg);
+    color: var(--color-text-bright);
     padding: 10px 20px;
     border-radius: 3px;
-    font-family: Helvetica, sans-serif;
-    font-size: 13px;
+    font-family: var(--font-ui);
+    font-size: var(--font-size-editor);
     z-index: 2000;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -56,8 +83,8 @@ html, body {
 }
 
 body {
-	background: #002B36;
-	padding: 20px;
+	background: var(--color-bg);
+	padding: var(--body-padding);
 	box-sizing: border-box;
 }
 
@@ -65,22 +92,22 @@ body {
 
 #editor {
     background: transparent;
-    color: #93a1a1; /* base1 */
+    color: var(--color-editor-text); /* base1 */
     width: 100%;
-    font-family: monospace;
+    font-family: var(--font-editor);
     outline: none;
     --editor-zoom: 1;
-    font-size: calc(13px * var(--editor-zoom));
+    font-size: calc(var(--font-size-editor) * var(--editor-zoom));
     white-space: pre-wrap;
     word-break: break-all;
     tab-size: 2;
     scrollbar-width: thin;
-    min-height: calc(100vh - 40px);
+    min-height: calc(100vh - 2 * var(--body-padding));
 }
 
 #editor:empty::before {
     content: attr(data-placeholder);
-    color: #586e75;
+    color: var(--color-placeholder);
     pointer-events: none;
 }
 
@@ -96,18 +123,18 @@ body {
 	top: 0px;
 	right: 0px;
 	z-index: +1000; /* watch out */
-	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3); 
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 #box1 {
 	padding: 5px;
 	text-align: center;
-	background: #00222b;
+	background: var(--color-key-bg);
 	font-size: 0; /* fix safari font-size dependance */
 }
 
 #box2 {
-	background: #08323c;
+	background: var(--color-nav-bg);
 	font-size: 0px;
 	padding: 0px 5px;
 }
@@ -118,12 +145,12 @@ body {
 	height: 42px;
 	mask: url('logo.svg') no-repeat center;
   	mask-size: contain;
-	background-color: #fdf6e3;
+	background-color: var(--color-logo);
   	transition: background-color 0.15s ease;
 }
 
 #box1 a.logo:hover {
-    background-color: #d33682;
+    background-color: var(--color-accent);
 }
 
 #box2 .function {
@@ -141,7 +168,7 @@ body {
 }
 
 #box2 .function svg {
-	color: #c4dce3;
+	color: var(--color-icon);
 	display: block;
 }
 
@@ -156,7 +183,7 @@ body {
 }
 
 #box2 .function.enabled:hover svg {
-	color: #d33682;
+	color: var(--color-accent);
 	display: block;
 }
 
@@ -164,7 +191,7 @@ body {
 	display: block;
 	height: 3px;
 	width: 32px;
-	background: #c4dce3;
+	background: var(--color-icon);
 	bottom: 0px;
 	position: absolute;
 	margin: auto;
@@ -173,20 +200,20 @@ body {
 }
 
 #box3 {
-	background: #173e48;
-	font-family: Helvetica, sans-serif;
+	background: var(--color-tooltip-bg);
+	font-family: var(--font-ui);
 	font-size: 12px;
 	line-height: 14px;
 	padding: 10px 15px;
 }
 
 #box3 .label {
-	color: #fff;
+	color: var(--color-text-bright);
 	font-weight: bold;
 }
 
 #box3 .shortcut {
-	color: #c4dce3;
+	color: var(--color-icon);
 	font-weight: normal;
 }
 
