@@ -276,3 +276,69 @@ body {
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* 1. Stop the default crossfade animation */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
+}
+
+/* 2. Keep the old view sitting statically in the background */
+::view-transition-old(root) {
+  /* Optional: You can add a slight dimming effect here so it looks 
+     like the new page is casting a shadow over the old one */
+  animation: dim-old-view 0.8s ease-out forwards;
+}
+
+/* 3. Apply the angled mask wipe to the new incoming view */
+::view-transition-new(root) {
+  /* 
+    Create a gradient: solid black (visible) on the left, 
+    transparent (hidden) on the right, soft blend in the middle.
+    105deg gives it that slightly angled, forward-leaning slice.
+  */
+  -webkit-mask-image: linear-gradient(105deg, #000 40%, transparent 60%);
+  mask-image: linear-gradient(105deg, #000 40%, transparent 60%);
+
+  /* Make the mask 3x wider than the screen so we can slide it */
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+
+  /* Start the mask aligned to the right (hiding the new view) */
+  -webkit-mask-position: 100% 0;
+  mask-position: 100% 0;
+
+  /* Run the wipe animation */
+  animation: wipe-in-soft 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* --- Animations --- */
+@keyframes wipe-in-soft {
+  from {
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
+  to {
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
+  }
+}
+
+@keyframes dim-old-view {
+  from { 
+     filter: brightness(1); 
+     /* transform: translateY(0); Start pushed slightly right */  
+  }
+  to { 
+     filter: brightness(0.3); 
+     /* transform: translateY(10%); Settle perfectly into place */
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	@view-transition {
+		navigation: auto;
+	}
+}
+
