@@ -5,8 +5,12 @@ export class HistoryManager {
 
   onNavigate(handler: NavHandler): void {
     this.handler = handler;
+    let lastPathname = window.location.pathname;
     window.addEventListener('popstate', (e) => {
-      handler(window.location.pathname, e.state);
+      const pathname = window.location.pathname;
+      if (pathname === lastPathname) return; // hash-only navigation, ignore
+      lastPathname = pathname;
+      handler(pathname, e.state);
     });
   }
 

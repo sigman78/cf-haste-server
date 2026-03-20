@@ -90,13 +90,44 @@ body {
 
 /* editor - shared editing and presenting styles */
 
+#editor-container {
+    display: flex;
+    align-items: flex-start;
+    --editor-zoom: 1;
+}
+
+#gutter {
+    flex-shrink: 0;
+    width: calc(3ch + 16px);
+    padding-right: 12px;
+    text-align: right;
+    font-family: var(--font-editor);
+    font-size: calc(var(--font-size-editor) * var(--editor-zoom));
+    color: var(--color-placeholder);
+    user-select: none;
+    min-height: calc(100vh - 2 * var(--body-padding));
+    box-sizing: border-box;
+}
+
+#gutter a, #gutter span {
+    display: block;
+}
+
+#gutter a {
+    color: inherit;
+    text-decoration: none;
+}
+
+#gutter a:hover {
+    color: var(--color-editor-text);
+}
+
 #editor {
     background: transparent;
     color: var(--color-editor-text); /* base1 */
     width: 100%;
     font-family: var(--font-editor);
     outline: none;
-    --editor-zoom: 1;
     font-size: calc(var(--font-size-editor) * var(--editor-zoom));
     white-space: pre-wrap;
     word-break: break-all;
