@@ -5,6 +5,7 @@ const defaults: AppConfig = {
   appName: 'Haste',
   enableTwitter: true,
   scrollToTopOnSave: true,
+  lineNumbers: true,
 };
 
 export const config: AppConfig = {

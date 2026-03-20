@@ -25,12 +25,14 @@ export interface ViewCallbacks {
 export interface RenderOptions {
   appName: string;
   enableTwitter: boolean;
+  lineNumbers: boolean;
 }
 
 export class ViewManager {
   private editor: HTMLDivElement;
   private gutter: HTMLDivElement;
   private appName: string;
+  private lineNumbers: boolean;
   private callbacks?: ViewCallbacks;
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly isMac: boolean =
@@ -52,6 +54,11 @@ export class ViewManager {
       if (twitterBtn) {
         twitterBtn.style.display = 'none';
       }
+    }
+
+    this.lineNumbers = options.lineNumbers;
+    if (!this.lineNumbers) {
+      this.gutter.style.display = 'none';
     }
   }
 
@@ -332,6 +339,7 @@ export class ViewManager {
   }
 
   private updateGutter(lineCount: number, presenting: boolean): void {
+    if (!this.lineNumbers) return;
     const frag = document.createDocumentFragment();
     for (let i = 1; i <= lineCount; i++) {
       const el = document.createElement(presenting ? 'a' : 'span');
