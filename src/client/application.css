@@ -249,6 +249,15 @@ body {
 	font-weight: normal;
 }
 
+/* --- hide elements for printing --- */
+.no-print {}
+
+@media print {
+	.no-print {
+		display: none !important;
+	}
+}
+
 ::view-transition-group(root) {
   animation-duration: 0.2s;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
