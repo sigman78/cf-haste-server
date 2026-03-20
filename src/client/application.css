@@ -135,6 +135,7 @@ body {
     tab-size: 2;
     scrollbar-width: thin;
     min-height: calc(100vh - 2 * var(--body-padding));
+    transition: opacity 0.15s;
 }
 
 #editor:empty::before {
@@ -146,6 +147,15 @@ body {
 #editor.hljs {
     background: transparent !important;
     padding: 0;
+}
+
+#editor.is-loading {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#editor.is-loading::before {
+    content: '' !important;
 }
 
 /* key */

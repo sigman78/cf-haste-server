@@ -90,6 +90,7 @@ export class ViewManager {
    * Render full state including editor (for loading/reset)
    */
   renderFullState(state: Paste, mode: 'editing' | 'presenting', highlightedContent?: string): void {
+    this.editor.classList.remove('is-loading');
     if (mode === 'presenting' && highlightedContent) {
       this.editor.contentEditable = 'false';
       this.editor.classList.add('hljs');
@@ -106,6 +107,14 @@ export class ViewManager {
       this.updateGutter(lineCount, false);
     }
     this.renderUIState(state, mode);
+  }
+
+  renderLoadingState(): void {
+    this.editor.contentEditable = 'false';
+    this.editor.classList.remove('hljs');
+    this.editor.classList.add('is-loading');
+    this.editor.textContent = '';
+    this.gutter.textContent = '';
   }
 
   /**

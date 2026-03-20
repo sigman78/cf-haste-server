@@ -42,6 +42,7 @@ export class AppController {
   // State machine
   private lifecycleState: DocumentLifecycleState = 'editing';
   private scrollToTopOnSave: boolean;
+  private isFirstLoad = true;
 
   constructor(options: AppConfig) {
     this.scrollToTopOnSave = options.scrollToTopOnSave !== false;
@@ -100,6 +101,7 @@ export class AppController {
       return;
     }
 
+    this.isFirstLoad = false;
     const historyState = state as HistoryState | undefined;
     const targetScrollY = historyState?.scrollY ?? 0;
 
@@ -224,9 +226,11 @@ export class AppController {
     const { key, ext } = parsePath(path);
     const urlLanguage = ext ? getLanguageForExtension(ext) : undefined;
 
+    const hideWhileLoading = this.isFirstLoad;
+    this.isFirstLoad = false;
+    this.lifecycleState = 'loading';
+    if (hideWhileLoading) this.view.renderLoadingState();
     try {
-      this.lifecycleState = 'loading';
-
       // Load from storage
       const result = await this.storage.load(key);
 
