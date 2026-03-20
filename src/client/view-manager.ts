@@ -12,6 +12,7 @@
  */
 
 import type { Paste } from './paste';
+import { MiniEditor } from './mini-editor';
 import 'highlight.js/styles/base16/solarized-dark.css';
 
 export interface ViewCallbacks {
@@ -26,11 +27,13 @@ export interface RenderOptions {
   appName: string;
   enableTwitter: boolean;
   lineNumbers: boolean;
+  highlightCurrentLine: boolean;
 }
 
 export class ViewManager {
   private editor: HTMLDivElement;
   private gutter: HTMLDivElement;
+  private miniEditor: MiniEditor;
   private appName: string;
   private lineNumbers: boolean;
   private callbacks?: ViewCallbacks;
@@ -42,11 +45,15 @@ export class ViewManager {
   private readonly ZOOM_MIN = 0.5;
   private readonly ZOOM_MAX = 3.0;
   private editorZoom: number = 1;
+  private lineHighlight: HTMLDivElement | null = null;
+  private highlightCurrentLine: boolean;
+  private currentLine: number = 0;
 
   constructor(options: RenderOptions) {
     this.appName = options.appName;
     this.editor = document.getElementById('editor') as HTMLDivElement;
     this.gutter = document.getElementById('gutter') as HTMLDivElement;
+    this.miniEditor = new MiniEditor(this.editor);
 
     // Hide twitter button if disabled
     if (!options.enableTwitter) {
@@ -59,6 +66,11 @@ export class ViewManager {
     this.lineNumbers = options.lineNumbers;
     if (!this.lineNumbers) {
       this.gutter.style.display = 'none';
+    }
+
+    this.highlightCurrentLine = options.highlightCurrentLine;
+    if (this.highlightCurrentLine) {
+      this.lineHighlight = document.getElementById('line-highlight') as HTMLDivElement;
     }
   }
 
@@ -75,15 +87,30 @@ export class ViewManager {
   init(): void {
     this.setupButtons();
     this.setupKeyboardShortcuts();
-    this.setupEditorListeners();
+    this.setupMiniEditor();
+    this.setupLineHighlightListeners();
     this.initZoom();
+  }
+
+  /**
+   * Setup MiniEditor with callbacks
+   */
+  private setupMiniEditor(): void {
+    this.miniEditor.setCallbacks({
+      onContentChange: (content, lineCount) => {
+        this.callbacks?.onContentInput?.(content);
+        this.updateGutter(lineCount, false);
+        this.updateLineHighlight();
+      },
+    });
+    this.miniEditor.init();
   }
 
   /**
    * Get current content from editor
    */
   getContentFromDOM(): string {
-    return this.editor.innerText;
+    return this.miniEditor.getContent();
   }
 
   /**
@@ -92,19 +119,21 @@ export class ViewManager {
   renderFullState(state: Paste, mode: 'editing' | 'presenting', highlightedContent?: string): void {
     this.editor.classList.remove('is-loading');
     if (mode === 'presenting' && highlightedContent) {
-      this.editor.contentEditable = 'false';
+      this.miniEditor.setEditable(false);
       this.editor.classList.add('hljs');
       this.editor.innerHTML = highlightedContent;
-      this.editor.focus();
+      this.miniEditor.focus();
       const lineCount = (highlightedContent.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, true);
+      this.resetLineHighlight();
     } else {
-      this.editor.contentEditable = 'plaintext-only';
+      this.miniEditor.setEditable(true);
       this.editor.classList.remove('hljs');
-      this.editor.textContent = state.content;
-      this.editor.focus();
+      this.miniEditor.setContent(state.content);
+      this.miniEditor.focus();
       const lineCount = state.content === '' ? 1 : (state.content.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, false);
+      this.updateLineHighlight();
     }
     this.renderUIState(state, mode);
   }
@@ -115,6 +144,7 @@ export class ViewManager {
     this.editor.classList.add('is-loading');
     this.editor.textContent = '';
     this.gutter.textContent = '';
+    this.resetLineHighlight();
   }
 
   /**
@@ -345,6 +375,7 @@ export class ViewManager {
     const container = document.getElementById('editor-container')!;
     container.style.setProperty('--editor-zoom', String(this.editorZoom));
     sessionStorage.setItem(this.ZOOM_KEY, String(this.editorZoom));
+    this.updateLineHighlight();
   }
 
   private updateGutter(lineCount: number, presenting: boolean): void {
@@ -363,49 +394,66 @@ export class ViewManager {
     this.gutter.appendChild(frag);
   }
 
+  private getCurrentLineNumber(): number {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return 1;
+
+    const range = sel.getRangeAt(0);
+    if (!this.editor.contains(range.startContainer)) return 1;
+
+    const preRange = document.createRange();
+    preRange.setStart(this.editor, 0);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    const textBefore = preRange.toString();
+    return (textBefore.match(/\n/g) ?? []).length + 1;
+  }
+
+  private updateLineHighlight(): void {
+    if (!this.highlightCurrentLine || !this.lineHighlight) return;
+
+    const isEditing = this.editor.contentEditable === 'plaintext-only';
+    const hasFocus = document.activeElement === this.editor;
+    const sel = window.getSelection();
+    const hasSelection = sel && !sel.isCollapsed;
+
+    if (!isEditing || !hasFocus || hasSelection) {
+      this.lineHighlight.classList.remove('visible');
+      this.currentLine = 0;
+      return;
+    }
+
+    const lineNumber = this.getCurrentLineNumber();
+    if (lineNumber === this.currentLine) return;
+
+    this.currentLine = lineNumber;
+
+    // Use CSS custom property for line position (CSS calculates: --line-index * 1lh)
+    this.lineHighlight.style.setProperty('--line-index', String(lineNumber - 1));
+    this.lineHighlight.classList.add('visible');
+  }
+
+  private resetLineHighlight(): void {
+    if (!this.highlightCurrentLine || !this.lineHighlight) return;
+    this.lineHighlight.classList.remove('visible');
+    this.currentLine = 0;
+  }
+
   /**
-   * Setup editor event listeners
+   * Setup line highlight event listeners
    */
-  private setupEditorListeners(): void {
-    // Tab: insert 2 spaces (no selection) or indent all selected lines (with selection)
-    this.editor.addEventListener('keydown', (evt) => {
-      if (evt.key !== 'Tab') return;
-      evt.preventDefault();
+  private setupLineHighlightListeners(): void {
+    if (!this.highlightCurrentLine) return;
 
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
-
-      if (sel.isCollapsed) {
-        document.execCommand('insertText', false, '  ');
-        return;
-      }
-
-      // Indent each selected line by prepending 2 spaces
-      const indented = sel
-        .toString()
-        .split('\n')
-        .map((l) => '  ' + l)
-        .join('\n');
-      document.execCommand('insertText', false, indented);
-
-      // Re-select the inserted text so subsequent Tab presses continue indenting.
-      // execCommand collapses the cursor to end of inserted text; extend backwards
-      // one character at a time to cover the full inserted length.
-      const newSel = window.getSelection()!;
-      for (let i = 0; i < indented.length; i++) {
-        newSel.modify('extend', 'backward', 'character');
-      }
+    document.addEventListener('selectionchange', () => {
+      this.updateLineHighlight();
     });
 
-    // Input: notify controller of content changes
-    this.editor.addEventListener('input', () => {
-      if (this.callbacks?.onContentInput) {
-        this.callbacks.onContentInput(this.editor.innerText);
-      }
-      const raw = this.editor.innerText;
-      const trimmed = raw.endsWith('\n') ? raw.slice(0, -1) : raw;
-      const lineCount = trimmed === '' ? 1 : (trimmed.match(/\n/g) ?? []).length + 1;
-      this.updateGutter(lineCount, false);
+    this.editor.addEventListener('focus', () => {
+      this.updateLineHighlight();
+    });
+
+    this.editor.addEventListener('blur', () => {
+      this.resetLineHighlight();
     });
   }
 }

@@ -15,6 +15,8 @@
     /* ui / overlay colors */
     --color-toast-bg:    #a31515;   /* error toast background */
     --color-text-bright: #fff;      /* toast text, tooltip label */
+    --color-line-highlight: rgba(255, 255, 255, 0.03); /* current line highlight */
+    --color-selection:   #073642;   /* text selection background (solarized base02) */
 
     /* typography */
     --font-editor: monospace;
@@ -96,6 +98,12 @@ body {
     align-items: flex-start;
     --editor-zoom: 1;
     overflow-x: auto;
+    position: relative;
+
+    /* Consolidated typography - all children inherit these */
+    font-family: var(--font-editor);
+    font-size: calc(var(--font-size-editor) * var(--editor-zoom));
+    line-height: var(--line-height-editor);
 }
 
 #gutter {
@@ -103,9 +111,6 @@ body {
     width: calc(3ch + 16px);
     padding-right: 12px;
     text-align: right;
-    font-family: var(--font-editor);
-    font-size: calc(var(--font-size-editor) * var(--editor-zoom));
-    line-height: var(--line-height-editor);
     color: var(--color-placeholder);
     user-select: none;
     min-height: calc(100vh - 2 * var(--body-padding));
@@ -125,20 +130,47 @@ body {
     color: var(--color-editor-text);
 }
 
+#line-highlight {
+    position: absolute;
+    left: 0;
+    right: 0;
+    --line-index: 0;
+    --line-h: calc(1em * var(--line-height-editor));
+    top: calc(var(--line-index) * var(--line-h));
+    height: var(--line-h);
+    background: var(--color-line-highlight);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+/* Use lh unit when supported for precise line-height matching */
+@supports (height: 1lh) {
+    #line-highlight {
+        top: calc(var(--line-index) * 1lh);
+        height: 1lh;
+    }
+}
+
+#line-highlight.visible {
+    opacity: 1;
+}
+
 #editor {
     background: transparent;
     color: var(--color-editor-text); /* base1 */
     width: 100%;
-    font-family: var(--font-editor);
     outline: none;
-    font-size: calc(var(--font-size-editor) * var(--editor-zoom));
-    line-height: var(--line-height-editor);
     white-space: pre;
     overflow-x: auto;
     tab-size: 2;
     scrollbar-width: thin;
     min-height: calc(100vh - 2 * var(--body-padding));
     transition: opacity 0.15s;
+    position: relative;
+    z-index: 1;
+    transform: translateZ(0); /* Forces Safari to repaint the layer */
 }
 
 #editor:empty::before {
@@ -150,6 +182,12 @@ body {
 #editor.hljs {
     background: transparent !important;
     padding: 0;
+}
+
+#editor::selection,
+#editor *::selection {
+    background: var(--color-selection) !important;
+    color: var(--color-text-bright) !important;
 }
 
 #editor.is-loading {

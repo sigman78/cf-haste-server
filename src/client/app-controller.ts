@@ -29,6 +29,7 @@ export interface AppConfig {
   enableTwitter: boolean;
   scrollToTopOnSave?: boolean; // default true
   lineNumbers?: boolean; // default true
+  highlightCurrentLine?: boolean; // default true
 }
 
 export class AppController {
@@ -54,6 +55,7 @@ export class AppController {
       appName: options.appName,
       enableTwitter: options.enableTwitter,
       lineNumbers: options.lineNumbers ?? true,
+      highlightCurrentLine: options.highlightCurrentLine ?? true,
     });
     this.transitions = new TransitionManager();
 
