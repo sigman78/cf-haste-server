@@ -12,6 +12,7 @@
  */
 
 import type { Paste } from './paste';
+import { MiniEditor } from './mini-editor';
 import 'highlight.js/styles/base16/solarized-dark.css';
 
 export interface ViewCallbacks {
@@ -32,6 +33,7 @@ export interface RenderOptions {
 export class ViewManager {
   private editor: HTMLDivElement;
   private gutter: HTMLDivElement;
+  private miniEditor: MiniEditor;
   private appName: string;
   private lineNumbers: boolean;
   private callbacks?: ViewCallbacks;
@@ -51,6 +53,7 @@ export class ViewManager {
     this.appName = options.appName;
     this.editor = document.getElementById('editor') as HTMLDivElement;
     this.gutter = document.getElementById('gutter') as HTMLDivElement;
+    this.miniEditor = new MiniEditor(this.editor);
 
     // Hide twitter button if disabled
     if (!options.enableTwitter) {
@@ -84,15 +87,30 @@ export class ViewManager {
   init(): void {
     this.setupButtons();
     this.setupKeyboardShortcuts();
-    this.setupEditorListeners();
+    this.setupMiniEditor();
+    this.setupLineHighlightListeners();
     this.initZoom();
+  }
+
+  /**
+   * Setup MiniEditor with callbacks
+   */
+  private setupMiniEditor(): void {
+    this.miniEditor.setCallbacks({
+      onContentChange: (content, lineCount) => {
+        this.callbacks?.onContentInput?.(content);
+        this.updateGutter(lineCount, false);
+        this.updateLineHighlight();
+      },
+    });
+    this.miniEditor.init();
   }
 
   /**
    * Get current content from editor
    */
   getContentFromDOM(): string {
-    return this.editor.innerText;
+    return this.miniEditor.getContent();
   }
 
   /**
@@ -101,18 +119,18 @@ export class ViewManager {
   renderFullState(state: Paste, mode: 'editing' | 'presenting', highlightedContent?: string): void {
     this.editor.classList.remove('is-loading');
     if (mode === 'presenting' && highlightedContent) {
-      this.editor.contentEditable = 'false';
+      this.miniEditor.setEditable(false);
       this.editor.classList.add('hljs');
       this.editor.innerHTML = highlightedContent;
-      this.editor.focus();
+      this.miniEditor.focus();
       const lineCount = (highlightedContent.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, true);
       this.resetLineHighlight();
     } else {
-      this.editor.contentEditable = 'plaintext-only';
+      this.miniEditor.setEditable(true);
       this.editor.classList.remove('hljs');
-      this.editor.textContent = state.content;
-      this.editor.focus();
+      this.miniEditor.setContent(state.content);
+      this.miniEditor.focus();
       const lineCount = state.content === '' ? 1 : (state.content.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, false);
       this.updateLineHighlight();
@@ -395,8 +413,10 @@ export class ViewManager {
 
     const isEditing = this.editor.contentEditable === 'plaintext-only';
     const hasFocus = document.activeElement === this.editor;
+    const sel = window.getSelection();
+    const hasSelection = sel && !sel.isCollapsed;
 
-    if (!isEditing || !hasFocus) {
+    if (!isEditing || !hasFocus || hasSelection) {
       this.lineHighlight.classList.remove('visible');
       this.currentLine = 0;
       return;
@@ -407,10 +427,8 @@ export class ViewManager {
 
     this.currentLine = lineNumber;
 
-    const lineHeight = parseFloat(getComputedStyle(this.editor).lineHeight);
-    const top = (lineNumber - 1) * lineHeight;
-
-    this.lineHighlight.style.top = `${top}px`;
+    // Use CSS custom property for line position (CSS calculates: --line-index * 1lh)
+    this.lineHighlight.style.setProperty('--line-index', String(lineNumber - 1));
     this.lineHighlight.classList.add('visible');
   }
 
@@ -421,64 +439,21 @@ export class ViewManager {
   }
 
   /**
-   * Setup editor event listeners
+   * Setup line highlight event listeners
    */
-  private setupEditorListeners(): void {
-    // Tab: insert 2 spaces (no selection) or indent all selected lines (with selection)
-    this.editor.addEventListener('keydown', (evt) => {
-      if (evt.key !== 'Tab') return;
-      evt.preventDefault();
+  private setupLineHighlightListeners(): void {
+    if (!this.highlightCurrentLine) return;
 
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
-
-      if (sel.isCollapsed) {
-        document.execCommand('insertText', false, '  ');
-        return;
-      }
-
-      // Indent each selected line by prepending 2 spaces
-      const indented = sel
-        .toString()
-        .split('\n')
-        .map((l) => '  ' + l)
-        .join('\n');
-      document.execCommand('insertText', false, indented);
-
-      // Re-select the inserted text so subsequent Tab presses continue indenting.
-      // execCommand collapses the cursor to end of inserted text; extend backwards
-      // one character at a time to cover the full inserted length.
-      const newSel = window.getSelection()!;
-      for (let i = 0; i < indented.length; i++) {
-        newSel.modify('extend', 'backward', 'character');
-      }
-    });
-
-    // Input: notify controller of content changes
-    this.editor.addEventListener('input', () => {
-      if (this.callbacks?.onContentInput) {
-        this.callbacks.onContentInput(this.editor.innerText);
-      }
-      const raw = this.editor.innerText;
-      const trimmed = raw.endsWith('\n') ? raw.slice(0, -1) : raw;
-      const lineCount = trimmed === '' ? 1 : (trimmed.match(/\n/g) ?? []).length + 1;
-      this.updateGutter(lineCount, false);
+    document.addEventListener('selectionchange', () => {
       this.updateLineHighlight();
     });
 
-    // Line highlight: track cursor position
-    if (this.highlightCurrentLine) {
-      document.addEventListener('selectionchange', () => {
-        this.updateLineHighlight();
-      });
+    this.editor.addEventListener('focus', () => {
+      this.updateLineHighlight();
+    });
 
-      this.editor.addEventListener('focus', () => {
-        this.updateLineHighlight();
-      });
-
-      this.editor.addEventListener('blur', () => {
-        this.resetLineHighlight();
-      });
-    }
+    this.editor.addEventListener('blur', () => {
+      this.resetLineHighlight();
+    });
   }
 }
