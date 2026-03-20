@@ -94,6 +94,7 @@ body {
     display: flex;
     align-items: flex-start;
     --editor-zoom: 1;
+    overflow-x: auto;
 }
 
 #gutter {
@@ -129,8 +130,8 @@ body {
     font-family: var(--font-editor);
     outline: none;
     font-size: calc(var(--font-size-editor) * var(--editor-zoom));
-    white-space: pre-wrap;
-    word-break: break-all;
+    white-space: pre;
+    overflow-x: auto;
     tab-size: 2;
     scrollbar-width: thin;
     min-height: calc(100vh - 2 * var(--body-padding));
