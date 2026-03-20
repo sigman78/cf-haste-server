@@ -20,6 +20,7 @@
     --font-editor: monospace;
     --font-ui: Helvetica, sans-serif;
     --font-size-editor: 13px;       /* editor base size (used in zoom calc) */
+    --line-height-editor: 1.5;      /* explicit line-height to keep gutter and editor in sync across browsers */
 
     /* layout */
     --body-padding: 20px;
@@ -104,6 +105,7 @@ body {
     text-align: right;
     font-family: var(--font-editor);
     font-size: calc(var(--font-size-editor) * var(--editor-zoom));
+    line-height: var(--line-height-editor);
     color: var(--color-placeholder);
     user-select: none;
     min-height: calc(100vh - 2 * var(--body-padding));
@@ -130,6 +132,7 @@ body {
     font-family: var(--font-editor);
     outline: none;
     font-size: calc(var(--font-size-editor) * var(--editor-zoom));
+    line-height: var(--line-height-editor);
     white-space: pre;
     overflow-x: auto;
     tab-size: 2;
