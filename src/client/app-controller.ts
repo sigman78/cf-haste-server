@@ -19,6 +19,7 @@ import {
   getLanguageForExtension,
 } from './highlight-config';
 import appConfig from './config';
+import { parsePath, buildPath } from './path-utils';
 
 type DocumentLifecycleState = 'loading' | 'editing' | 'presenting' | 'saving';
 type HistoryState = { content?: string; scrollY?: number };
@@ -67,7 +68,7 @@ export class AppController {
     // Initialize history manager
     this.history = new HistoryManager();
     this.history.onNavigate((path, state) => {
-      if (path === '/' || path === '') {
+      if (!parsePath(path).key) {
         this.handleRoot(state);
       } else {
         this.loadDocumentByPath(path.slice(1), 'presenting', state as HistoryState);
@@ -179,18 +180,13 @@ export class AppController {
         this.view.hideProgress();
       }, 500);
 
-      // Build path with extension
-      let path = result.key;
-      if (language) {
-        const ext = getExtensionForLanguage(language);
-        path += '.' + ext;
-      }
+      const ext = language ? getExtensionForLanguage(language) : undefined;
 
       // Bug C3 fix: persist draft to current history entry before navigating to saved doc
       this.history.replace(window.location.pathname, { content: content, scrollY: window.scrollY });
 
       // Push new history entry
-      this.history.push('/' + path);
+      this.history.push(buildPath(result.key, ext));
 
       // Render with transition
       this.transitions.run(() => {
@@ -225,9 +221,7 @@ export class AppController {
     }
 
     // Parse key and extension
-    const parts = path.split('.', 2);
-    const key = parts[0];
-    const ext = parts[1];
+    const { key, ext } = parsePath(path);
     const urlLanguage = ext ? getLanguageForExtension(ext) : undefined;
 
     try {
@@ -249,10 +243,10 @@ export class AppController {
       this.lifecycleState = defaultMode;
 
       // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
-      if (defaultMode === 'presenting' && !path.includes('.')) {
+      if (defaultMode === 'presenting' && !ext) {
         if (this.document.language) {
           const langExt = getExtensionForLanguage(this.document.language);
-          this.history.replace(`/${this.document.key}.${langExt}`);
+          this.history.replace(buildPath(this.document.key, langExt));
         }
       }
 
