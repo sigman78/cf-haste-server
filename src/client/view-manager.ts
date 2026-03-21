@@ -162,7 +162,8 @@ export class ViewManager {
       this.viewerCode.innerHTML = highlightedContent;
       const lineCount = (highlightedContent.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, true);
-      this.resetLineHighlight();
+      // this.resetLineHighlight();
+      this.highlightAnchorLine();
     } else {
       // Edit mode: show editor, hide viewer
       this.editor.style.display = 'block';
@@ -472,6 +473,19 @@ export class ViewManager {
     this.currentLine = 0;
   }
 
+  private highlightAnchorLine(): void {
+    if (!this.highlightCurrentLine || !this.lineHighlight) return;
+    const match = window.location.hash.match(/^#L(\d+)$/);
+    if (!match) {
+      this.resetLineHighlight();
+      return;
+    }
+    const lineNumber = parseInt(match[1], 10);
+    this.lineHighlight.style.setProperty('--line-index', String(lineNumber - 1));
+    this.lineHighlight.classList.add('visible');
+    this.currentLine = lineNumber;
+  }
+
   /**
    * Setup line highlight event listeners
    */
@@ -488,6 +502,13 @@ export class ViewManager {
 
     this.editor.addEventListener('blur', () => {
       this.resetLineHighlight();
+    });
+
+    window.addEventListener('hashchange', () => {
+      const isPresenting = this.viewer.style.display !== 'none';
+      if (isPresenting) {
+        this.highlightAnchorLine();
+      }
     });
   }
 }

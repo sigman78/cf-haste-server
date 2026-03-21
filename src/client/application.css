@@ -124,6 +124,7 @@ body {
 #gutter a {
     color: inherit;
     text-decoration: none;
+    scroll-margin-top: 50vh; /* make activated anchor v-centered */
 }
 
 #gutter a:hover {
