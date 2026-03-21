@@ -4,14 +4,14 @@ import { S } from './helpers/selectors';
 
 // --- helpers -----------------------------------------------------------------
 
-/** Wait for the app to be in editing mode (#editor without hljs class). */
+/** Wait for the app to be in editing mode (textarea #editor is visible). */
 async function waitForEditingMode(page: Page) {
-  await expect(page.locator(S.editor)).not.toHaveClass(/hljs/);
+  await expect(page.locator(S.editor)).toBeVisible();
 }
 
-/** Wait for the app to be in presenting mode (#editor with hljs class). */
+/** Wait for the app to be in presenting mode (#viewer pre is visible). */
 async function waitForPresentingMode(page: Page) {
-  await expect(page.locator(S.editor)).toHaveClass(/hljs/);
+  await expect(page.locator(S.viewer)).toBeVisible();
 }
 
 /** Check that a button element has the `enabled` CSS class. */
@@ -34,7 +34,7 @@ test.describe('Paste lifecycle', () => {
     await page.goto('/');
 
     await waitForEditingMode(page);
-    await expect(page.locator(S.editor)).toHaveText('');
+    await expect(page.locator(S.editor)).toHaveValue('');
 
     await expectEnabled(page, S.newBtn);
     await expectDisabled(page, S.saveBtn);
@@ -75,8 +75,8 @@ test.describe('Paste lifecycle', () => {
 
     await waitForPresentingMode(page);
 
-    await expect(page.locator(S.editor)).toContainText('hello');
-    await expect(page.locator(S.editor)).toContainText('world');
+    await expect(page.locator(S.viewer)).toContainText('hello');
+    await expect(page.locator(S.viewer)).toContainText('world');
 
     await expectEnabled(page, S.duplicateBtn);
     await expectDisabled(page, S.saveBtn);
@@ -104,7 +104,7 @@ test.describe('Paste lifecycle', () => {
     await waitForEditingMode(page);
     await expectEnabled(page, S.saveBtn);
 
-    await expect(page.locator(S.editor)).toHaveText('const x = 1;');
+    await expect(page.locator(S.editor)).toHaveValue('const x = 1;');
   });
 
   // -- 5. Forward navigation restores presented paste ------------------------
@@ -129,8 +129,8 @@ test.describe('Paste lifecycle', () => {
     await page.waitForURL(/\/testkey0/);
     await waitForPresentingMode(page);
 
-    await expect(page.locator(S.editor)).toContainText('greeting');
-    await expect(page.locator(S.editor)).toContainText('hello');
+    await expect(page.locator(S.viewer)).toContainText('greeting');
+    await expect(page.locator(S.viewer)).toContainText('hello');
 
     expect(page.url()).toBe(docUrl);
 
@@ -181,7 +181,7 @@ test.describe('Paste lifecycle', () => {
     await waitForEditingMode(page);
     await expect(page).toHaveURL(/\/testkey0/); // no /edit suffix
 
-    await expect(page.locator(S.editor)).toHaveText(original);
+    await expect(page.locator(S.editor)).toHaveValue(original);
 
     await expectEnabled(page, S.saveBtn);
     await expectDisabled(page, S.duplicateBtn);
@@ -214,7 +214,7 @@ test.describe('Paste lifecycle', () => {
     expect(page.url()).toMatch(/testkey1/);
     expect(page.url()).not.toMatch(/testkey0/);
 
-    await expect(page.locator(S.editor)).toContainText('altered');
+    await expect(page.locator(S.viewer)).toContainText('altered');
   });
 
   // -- 9. Back from fork save ------------------------------------------------
@@ -244,7 +244,7 @@ test.describe('Paste lifecycle', () => {
     await page.waitForURL(/\/testkey0/);
     await waitForPresentingMode(page);
 
-    await expect(page.locator(S.editor)).toContainText('original');
+    await expect(page.locator(S.viewer)).toContainText('original');
   });
 
   // -- 10. Back to pre-fork state --------------------------------------------
@@ -276,7 +276,7 @@ test.describe('Paste lifecycle', () => {
     await page.goBack();
     await page.waitForURL(/\/testkey0/);
     await waitForPresentingMode(page);
-    await expect(page.locator(S.editor)).toContainText('original');
+    await expect(page.locator(S.viewer)).toContainText('original');
 
     // Back twice: new editor at /
     await page.goBack();
@@ -300,7 +300,7 @@ test.describe('Paste lifecycle', () => {
     await page.waitForURL('/');
     await waitForEditingMode(page);
 
-    await expect(page.locator(S.editor)).toHaveText('');
+    await expect(page.locator(S.editor)).toHaveValue('');
     await expectDisabled(page, S.saveBtn);
     await expectDisabled(page, S.duplicateBtn);
     await expectEnabled(page, S.newBtn);
@@ -319,7 +319,7 @@ test.describe('Paste lifecycle', () => {
 
     await page.waitForURL('/');
     await waitForEditingMode(page);
-    await expect(page.locator(S.editor)).toHaveText('');
+    await expect(page.locator(S.editor)).toHaveValue('');
   });
 
   // -- 13. Keyboard shortcut: Ctrl+S saves -----------------------------------
@@ -351,7 +351,7 @@ test.describe('Paste lifecycle', () => {
     await page.keyboard.press('Control+n');
     await page.waitForURL('/');
     await waitForEditingMode(page);
-    await expect(page.locator(S.editor)).toHaveText('');
+    await expect(page.locator(S.editor)).toHaveValue('');
   });
 
   // -- 15. Keyboard shortcut: Ctrl+D for duplicate ---------------------------
@@ -369,7 +369,7 @@ test.describe('Paste lifecycle', () => {
     await page.keyboard.press('Control+d');
     await waitForEditingMode(page);
     await expect(page).toHaveURL(/\/testkey0/); // no /edit suffix
-    await expect(page.locator(S.editor)).toHaveText('to be forked');
+    await expect(page.locator(S.editor)).toHaveValue('to be forked');
   });
 
   // -- 16. Tab key inserts spaces in textarea --------------------------------
@@ -382,7 +382,7 @@ test.describe('Paste lifecycle', () => {
     await page.locator(S.editor).click();
     await page.locator(S.editor).press('Tab');
 
-    await expect(page.locator(S.editor)).toHaveText('  ');
+    await expect(page.locator(S.editor)).toHaveValue('  ');
     await expect(page.locator(S.editor)).toBeFocused();
   });
 
@@ -397,7 +397,7 @@ test.describe('Paste lifecycle', () => {
     // App catches the 404 and navigates to /
     await page.waitForURL('/');
     await waitForEditingMode(page);
-    await expect(page.locator(S.editor)).toHaveText('');
+    await expect(page.locator(S.editor)).toHaveValue('');
   });
 
   // -- 18. Direct URL load of existing document ------------------------------
@@ -409,7 +409,7 @@ test.describe('Paste lifecycle', () => {
     await page.goto('/directload');
 
     await waitForPresentingMode(page);
-    await expect(page.locator(S.editor)).toContainText('pre-populated');
+    await expect(page.locator(S.viewer)).toContainText('pre-populated');
   });
 
   // -- 19. Save failure shows toast ------------------------------------------
@@ -467,7 +467,7 @@ test.describe('Paste lifecycle', () => {
     await page.goBack();
     await page.waitForURL(/\/gooddoc/);
     await waitForPresentingMode(page);
-    await expect(page.locator(S.editor)).toContainText('hello world');
+    await expect(page.locator(S.viewer)).toContainText('hello world');
   });
 
   // -- 22. scrollRestoration is set to manual ---------------------------------
@@ -544,7 +544,7 @@ test.describe('Paste lifecycle', () => {
     // Tab should indent all 3 lines
     await page.keyboard.press('Tab');
 
-    const content = await page.locator(S.editor).innerText();
+    const content = await page.locator(S.editor).inputValue();
     expect(content).toBe('  line1\n  line2\n  line3');
   });
 
@@ -556,7 +556,7 @@ test.describe('Paste lifecycle', () => {
     await page.locator(S.editor).click();
     await page.keyboard.press('Tab');
 
-    const content = await page.locator(S.editor).innerText();
+    const content = await page.locator(S.editor).inputValue();
     expect(content).toMatch(/^ {2}/);
   });
 });

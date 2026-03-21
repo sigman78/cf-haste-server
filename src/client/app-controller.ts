@@ -249,7 +249,7 @@ export class AppController {
       this.lifecycleState = defaultMode;
 
       // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
-      if (defaultMode === 'presenting' && !ext) {
+      if (defaultMode === 'presenting' && !ext && this.document.key) {
         if (this.document.language) {
           const langExt = getExtensionForLanguage(this.document.language);
           this.history.replace(buildPath(this.document.key, langExt));
