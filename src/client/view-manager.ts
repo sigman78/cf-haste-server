@@ -12,7 +12,7 @@
  */
 
 import type { Paste } from './paste';
-import 'highlight.js/styles/base16/solarized-dark.css';
+import './solarized-dark-hljs.css';
 
 export interface ViewCallbacks {
   onSave: () => void;
