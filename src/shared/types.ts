@@ -18,6 +18,9 @@ export interface Env {
   MAX_PASTE_SIZE: string;
   KEY_LENGTH: string;
   DEFAULT_EXPIRE_DAYS: string;
+  BROWSER_CACHE_MAX_AGE?: string;
+  CDN_CACHE_MAX_AGE?: string;
+  CDN_STALE_WHILE_REVALIDATE?: string;
 }
 
 export interface SaveResponse {

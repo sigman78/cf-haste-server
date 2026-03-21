@@ -25,3 +25,6 @@ binding = "ASSETS"
 MAX_PASTE_SIZE = "400000"
 KEY_LENGTH = "10"
 DEFAULT_EXPIRE_DAYS = "30"
+BROWSER_CACHE_MAX_AGE = "3600"        # browser Cache-Control max-age in seconds; "0" to disable
+CDN_CACHE_MAX_AGE = "2592000"         # CF edge Cloudflare-CDN-Cache-Control max-age in seconds; "0" to disable
+CDN_STALE_WHILE_REVALIDATE = "86400"  # stale-while-revalidate for CF edge; "0" to omit

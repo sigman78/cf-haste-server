@@ -4,6 +4,25 @@ import { createStore } from './storage';
 
 const app = new Hono<{ Bindings: Env }>();
 
+function applyDocumentCacheHeaders(
+  env: Env,
+  setHeader: (name: string, value: string) => void
+): void {
+  const browserMaxAge = parseInt(env.BROWSER_CACHE_MAX_AGE || '0');
+  if (browserMaxAge > 0) {
+    setHeader('Cache-Control', `public, max-age=${browserMaxAge}, immutable`);
+  }
+  const cdnMaxAge = parseInt(env.CDN_CACHE_MAX_AGE || '0');
+  if (cdnMaxAge > 0) {
+    const swr = parseInt(env.CDN_STALE_WHILE_REVALIDATE || '0');
+    const value =
+      swr > 0
+        ? `public, max-age=${cdnMaxAge}, stale-while-revalidate=${swr}`
+        : `public, max-age=${cdnMaxAge}`;
+    setHeader('Cloudflare-CDN-Cache-Control', value);
+  }
+}
+
 // Health check
 app.get('/health', (c) => {
   return c.json({ status: 'ok', timestamp: Date.now() });
@@ -16,6 +35,7 @@ const PUBLIC_MD_PAGES: Record<string, string> = {
 
 // Get document by key
 app.get('/documents/:id', async (c) => {
+  const isLocalDev = !c.req.raw.cf;
   const key = c.req.param('id');
 
   // Handle "special" pastes
@@ -33,6 +53,7 @@ app.get('/documents/:id', async (c) => {
           content,
           key: key,
         };
+        if (!isLocalDev) applyDocumentCacheHeaders(c.env, (k, v) => c.header(k, v));
         return c.json(response);
       }
     } catch (error) {
@@ -55,6 +76,7 @@ app.get('/documents/:id', async (c) => {
       key,
     };
 
+    if (!isLocalDev) applyDocumentCacheHeaders(c.env, (k, v) => c.header(k, v));
     return c.json(response);
   } catch (error) {
     console.error('Error retrieving document:', error);
@@ -105,6 +127,7 @@ app.post('/documents', async (c) => {
 
 // Raw document endpoint (for copy/download)
 app.get('/raw/:id', async (c) => {
+  const isLocalDev = !c.req.raw.cf;
   const key = c.req.param('id');
   const store = createStore(c.env);
 
@@ -115,6 +138,7 @@ app.get('/raw/:id', async (c) => {
       return c.text('Document not found', 404);
     }
 
+    if (!isLocalDev) applyDocumentCacheHeaders(c.env, (k, v) => c.header(k, v));
     return c.text(content, 200, {
       'Content-Type': 'text/plain; charset=utf-8',
     });
