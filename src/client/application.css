@@ -137,9 +137,10 @@ body {
     right: 0;
     --line-index: 0;
     --line-h: calc(1em * var(--line-height-editor));
-    top: calc(var(--line-index) * var(--line-h));
-    height: var(--line-h);
+    top: calc(var(--line-index) * var(--line-h) - 1px);
+    height: calc(var(--line-h) + 2px);
     background: var(--color-line-highlight);
+    border-radius: 3px;
     pointer-events: none;
     z-index: 0;
     opacity: 0;
@@ -149,8 +150,8 @@ body {
 /* Use lh unit when supported for precise line-height matching */
 @supports (height: 1lh) {
     #line-highlight {
-        top: calc(var(--line-index) * 1lh);
-        height: 1lh;
+        top: calc(var(--line-index) * 1lh - 1px);
+        height: calc(1lh + 2px);
     }
 }
 
@@ -162,6 +163,7 @@ body {
 #editor {
     resize: none;
     border: none;
+    padding: 0;
     background: transparent;
     color: var(--color-editor-text);
     width: 100%;
