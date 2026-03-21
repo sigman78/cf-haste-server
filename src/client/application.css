@@ -157,46 +157,71 @@ body {
     opacity: 1;
 }
 
+/* Textarea editor (edit mode) */
 #editor {
+    resize: none;
+    border: none;
     background: transparent;
-    color: var(--color-editor-text); /* base1 */
+    color: var(--color-editor-text);
     width: 100%;
     outline: none;
+    white-space: pre;
+    overflow-x: auto;
+    overflow-y: hidden;
+    field-sizing: content;
+    tab-size: 2;
+    scrollbar-width: thin;
+    min-height: calc(100vh - 2 * var(--body-padding));
+    position: relative;
+    z-index: 1;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+#editor::placeholder {
+    color: var(--color-placeholder);
+}
+
+#editor::selection {
+    background: var(--color-selection) !important;
+    color: var(--color-text-bright) !important;
+}
+
+/* Viewer (present mode) */
+#viewer {
+    display: none;
+    margin: 0;
+    background: transparent;
+    width: 100%;
     white-space: pre;
     overflow-x: auto;
     tab-size: 2;
     scrollbar-width: thin;
     min-height: calc(100vh - 2 * var(--body-padding));
-    transition: opacity 0.15s;
     position: relative;
     z-index: 1;
-    transform: translateZ(0); /* Forces Safari to repaint the layer */
+    transition: opacity 0.15s;
 }
 
-#editor:empty::before {
-    content: attr(data-placeholder);
-    color: var(--color-placeholder);
-    pointer-events: none;
-}
-
-#editor.hljs {
+#viewer code {
+    display: block;
     background: transparent !important;
     padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
 }
 
-#editor::selection,
-#editor *::selection {
+#viewer::selection,
+#viewer *::selection {
     background: var(--color-selection) !important;
     color: var(--color-text-bright) !important;
 }
 
-#editor.is-loading {
+#viewer.is-loading {
     opacity: 0;
     pointer-events: none;
-}
-
-#editor.is-loading::before {
-    content: '' !important;
 }
 
 /* key */

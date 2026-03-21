@@ -1,5 +1,6 @@
 export const S = {
   editor: '#editor',
+  viewer: '#viewer',
   saveBtn: '#box2 .save.function',
   newBtn: '#box2 .new.function',
   duplicateBtn: '#box2 .duplicate.function',
