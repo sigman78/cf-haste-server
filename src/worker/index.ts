@@ -52,6 +52,7 @@ app.get('/documents/:id', async (c) => {
         const response: GetResponse = {
           content,
           key: key,
+          frozen: true,
         };
         if (!isLocalDev) applyDocumentCacheHeaders(c.env, (k, v) => c.header(k, v));
         return c.json(response);

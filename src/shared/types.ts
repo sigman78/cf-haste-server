@@ -32,4 +32,5 @@ export interface GetResponse {
   content: string;
   key: string;
   language?: string;
+  frozen?: boolean;
 }

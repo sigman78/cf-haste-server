@@ -247,35 +247,16 @@ export class ViewManager {
    * Update button states based on document state
    */
   private updateButtons(state: Paste, mode: 'editing' | 'presenting'): void {
-    const functions = document.querySelectorAll('#box2 .function');
-    functions.forEach((element) => {
-      const el = element as HTMLElement;
-      const isNew = el.classList.contains('new');
-      const isSave = el.classList.contains('save');
-      const isDuplicate = el.classList.contains('duplicate');
-      const isTwitter = el.classList.contains('twitter');
+    const presenting = mode === 'presenting';
+    const editing = mode === 'editing';
 
-      // New button: always enabled
-      if (isNew) {
-        el.classList.add('enabled');
-      }
-      // Save button: enabled when editing and content is not empty
-      else if (isSave) {
-        if (mode === 'editing' && state.content.trim() !== '') {
-          el.classList.add('enabled');
-        } else {
-          el.classList.remove('enabled');
-        }
-      }
-      // Duplicate and Twitter: enabled when presenting
-      else if (isDuplicate || isTwitter) {
-        if (mode === 'presenting') {
-          el.classList.add('enabled');
-        } else {
-          el.classList.remove('enabled');
-        }
-      }
-    });
+    const updateBtn = (el: Element | null, isEnabled: boolean) =>
+      el?.classList.toggle('enabled', isEnabled);
+
+    updateBtn(document.querySelector('#box2 .new'), true);
+    updateBtn(document.querySelector('#box2 .save'), editing && state.content.trim() !== '');
+    updateBtn(document.querySelector('#box2 .duplicate'), presenting && !state.frozen);
+    updateBtn(document.querySelector('#box2 .twitter'), presenting);
   }
 
   /**

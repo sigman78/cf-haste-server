@@ -14,6 +14,7 @@ export interface LoadResult {
   content: string;
   key: string;
   language?: string;
+  frozen?: boolean;
 }
 
 export interface SaveResult {
@@ -42,6 +43,7 @@ export class StorageService {
       content: data.content,
       key: data.key,
       language: data.language,
+      frozen: data.frozen,
     };
   }
 

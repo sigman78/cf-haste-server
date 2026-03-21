@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 export interface MockStore {
   get(key: string): string | undefined;
   set(key: string, content: string): void;
+  setFrozen(key: string, content: string): void;
   lastKey(): string | undefined;
   failNextSave(): void;
   failNextLoad(): void;
@@ -38,6 +39,7 @@ export async function setupMockApi(page: Page): Promise<MockStore> {
   });
 
   const docs = new Map<string, string>();
+  const frozenKeys = new Set<string>();
   let counter = 0;
   let lastSavedKey: string | undefined;
   let saveShouldFail = false;
@@ -46,6 +48,10 @@ export async function setupMockApi(page: Page): Promise<MockStore> {
   const store: MockStore = {
     get: (key) => docs.get(key),
     set: (key, content) => docs.set(key, content),
+    setFrozen: (key, content) => {
+      docs.set(key, content);
+      frozenKeys.add(key);
+    },
     lastKey: () => lastSavedKey,
     failNextSave: () => {
       saveShouldFail = true;
@@ -92,10 +98,11 @@ export async function setupMockApi(page: Page): Promise<MockStore> {
     const key = url.pathname.split('/').pop() ?? '';
     const content = docs.get(key);
     if (content !== undefined) {
+      const frozen = frozenKeys.has(key) ? true : undefined;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ content, key }),
+        body: JSON.stringify({ content, key, ...(frozen && { frozen }) }),
       });
     } else {
       await route.fulfill({

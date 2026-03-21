@@ -244,6 +244,7 @@ export class AppController {
         content: result.content,
         key: result.key,
         language: highlightResult.language || urlLanguage || result.language,
+        frozen: result.frozen,
       });
 
       this.lifecycleState = defaultMode;
@@ -316,7 +317,7 @@ export class AppController {
    * Handle duplicate button/shortcut
    */
   private handleDuplicate(): void {
-    if (this.lifecycleState === 'presenting') {
+    if (this.lifecycleState === 'presenting' && !this.document.frozen) {
       const content = this.document.content;
       this.transitions.run(() => {
         this.document.reset();

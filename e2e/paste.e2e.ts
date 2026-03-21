@@ -559,4 +559,16 @@ test.describe('Paste lifecycle', () => {
     const content = await page.locator(S.editor).inputValue();
     expect(content).toMatch(/^ {2}/);
   });
+
+  test('27 - frozen document disables duplicate and twitter buttons', async ({ page }) => {
+    const store = await setupMockApi(page);
+    store.setFrozen('readme', 'This is a read-only document.');
+
+    await page.goto('/readme');
+    await waitForPresentingMode(page);
+
+    await expectDisabled(page, S.duplicateBtn);
+    await expectEnabled(page, S.twitterBtn);
+    await expectEnabled(page, S.newBtn);
+  });
 });
