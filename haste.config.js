@@ -2,5 +2,5 @@
 //
 export default {
   appName: 'Haste',
-  enableTwitter: true
+  enableTwitter: true,
 };

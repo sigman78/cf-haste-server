@@ -25,7 +25,7 @@ export class TransitionManager {
     if (TransitionManager.IS_SUPPORTED) {
       const transition = document.startViewTransition(callback);
 
-      return transition.finished.catch(err => {
+      return transition.finished.catch((err) => {
         console.error('View transition failed:', err);
       });
     } else {
