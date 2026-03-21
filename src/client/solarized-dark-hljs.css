@@ -22,36 +22,32 @@
 pre code.hljs,
 code.hljs {
   /* --- Solarized Dark palette (OKLCH) --- */
-  --sol-base03:  oklch(0.2673 0.0486 219.84deg); /* #002b36  darkest background */
-  --sol-base02:  oklch(0.3092 0.0518 219.68deg); /* #073642  dark bg highlight  */
-  --sol-base01:  oklch(0.4700 0.0283 219.20deg); /* #586e75  punctuation        */
-  --sol-base0:   oklch(0.6537 0.0198 205.40deg); /* #839496  base text          */
-  --sol-base1:   oklch(0.6979 0.0159 197.00deg); /* #93a1a1  selection text     */
+  --sol-base03:  oklch(0.2673 0.0486 219.84deg); /* #002b36  darkest background  */
+  --sol-base02:  oklch(0.3092 0.0518 219.68deg); /* #073642  bg highlight        */
+  --sol-base01:  oklch(0.4600 0.0240 219.20deg); /* punctuation — dimmed         */
+  --sol-base0:   oklch(0.7000 0.0160 205.00deg); /* base text — brighter reading */
 
-  --sol-yellow:  oklch(0.7200 0.1200  85.72deg); /* #b58900  comments           */
-  --sol-orange:  oklch(0.5808 0.1732  39.49deg); /* #cb4b16  special/meta       */
-  --sol-red:     oklch(0.5863 0.2064  27.11deg); /* #dc322f  deletion           */
-  --sol-cyan:    oklch(0.7300 0.1250 187.42deg); /* #2aa198  constants          */
-  --sol-blue:    oklch(0.7000 0.1550 244.94deg); /* #268bd2  definitions        */
-  --sol-green:   oklch(0.6444 0.1508 118.61deg); /* #859900  addition           */
-
-  --sol-yellow-bg: oklch(0.2900 0.0250 85.72deg);
+  --sol-yellow:  oklch(0.7500 0.1400  85.72deg); /* comments — warmest, brightest */
+  --sol-orange:  oklch(0.5808 0.1732  39.49deg); /* special / preprocessor        */
+  --sol-red:     oklch(0.5863 0.2064  27.11deg); /* deletion                      */
+  --sol-cyan:    oklch(0.7600 0.1200 187.42deg); /* constants — bright data color */
+  --sol-blue:    oklch(0.7300 0.1500 244.94deg); /* definitions — structural blue */
+  --sol-green:   oklch(0.6444 0.1508 118.61deg); /* addition                      */
 
   /* --- Semantic roles --- */
-  --color-bg:          var(--sol-base03);
+  --color-bg:           var(--sol-base03);
   --color-bg-highlight: var(--sol-base02);
-  --color-selection:   var(--sol-base02);
-  --color-text:        var(--sol-base0);
-  --color-punctuation: var(--sol-base01);
-  --color-comment:     var(--sol-yellow);
-  --color-constant:    var(--sol-cyan);    /* strings, numbers, regexp, literals */
-  --color-definition:  var(--sol-blue);    /* function/class at declaration site */
-  --color-special:     var(--sol-orange);  /* meta, preprocessor, embedded tags  */
-  --color-deletion:    var(--sol-red);
-  --color-addition:    var(--sol-green);
-  --color-diff:        var(--sol-blue);
-
-  --color-comment-bg:  var(--sol-yellow-bg); /* base03 hue-shifted toward yellow */
+  --color-selection:    var(--sol-base02);
+  --color-text:         var(--sol-base0);
+  --color-punctuation:  var(--sol-base01);
+  --color-comment:      var(--sol-base03); /*var(--sol-yellow); */
+  --color-comment-bg:   var(--sol-base01); /*oklch(0.295 0.020 85.72deg);*/
+  --color-constant:     var(--sol-cyan);   /* strings, numbers, regexp, literals */
+  --color-definition:   var(--sol-blue);   /* function/class at declaration site */
+  --color-special:      var(--sol-orange); /* meta, preprocessor, embedded tags  */
+  --color-deletion:     var(--sol-red);
+  --color-addition:     var(--sol-green);
+  --color-diff:         var(--sol-blue);
 }
 
 pre code.hljs {
@@ -84,8 +80,8 @@ code.hljs {
   color: var(--color-comment);
   background-color: var(--color-comment-bg);
   border-radius: 2px;
-  padding: 0.05em 0.25em;
-  margin: 0 -0.25em;
+/*  padding: 0.05em 0.25em;
+  margin: 0 -0.25em; */
 }
 
 /* Keywords, types, variables, built-ins: base text — too common to stand out */
@@ -101,7 +97,7 @@ code.hljs {
 .hljs-attr,
 .hljs-attribute,
 .hljs-built_in {
-  color: var(--color-text);
+  color: var(--sol-yellow);
 }
 
 /* Punctuation & operators: dimmed — let names breathe */
