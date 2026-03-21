@@ -8,9 +8,9 @@
 Cloudflare Workers Edition
 ```
 
-> **Note:** This is a modernized version of Haste rebuilt for Cloudflare Workers with D1 database, TypeScript, and Vite. For the original Node.js version, see [seejohnrun/haste-server](https://github.com/seejohnrun/haste-server).
+> **Note:** For the original Node.js version, see [seejohnrun/haste-server](https://github.com/seejohnrun/haste-server).
 
-Modern, cloud-native pastebin server running on Cloudflare's global edge network.
+Modern, cloud-native pastebin server running on Cloudflare's global edge network, see [Demo](https://haste.sigman78.workers.dev/)
 
 ## What is Haste?
 
