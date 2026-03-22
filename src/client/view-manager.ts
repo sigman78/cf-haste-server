@@ -263,6 +263,11 @@ export class ViewManager {
    * Setup button event listeners
    */
   private setupButtons(): void {
+    const box3 = document.getElementById('box3')!;
+    const pointer = document.getElementById('pointer')!;
+    const labelEl = document.querySelector('#box3 .label') as HTMLElement;
+    const shortcutEl = document.querySelector('#box3 .shortcut') as HTMLElement;
+
     const mod = 'ctrl';
     const buttons = [
       {
@@ -305,11 +310,6 @@ export class ViewManager {
 
       // Hover handlers for tooltip
       element.addEventListener('mouseenter', () => {
-        const labelEl = document.querySelector('#box3 .label') as HTMLElement;
-        const shortcutEl = document.querySelector('#box3 .shortcut') as HTMLElement;
-        const box3 = document.getElementById('box3')!;
-        const pointer = document.getElementById('pointer')!;
-
         labelEl.textContent = label;
         shortcutEl.textContent = shortcut;
         box3.style.display = 'block';
@@ -318,8 +318,6 @@ export class ViewManager {
       });
 
       element.addEventListener('mouseleave', () => {
-        const box3 = document.getElementById('box3')!;
-        const pointer = document.getElementById('pointer')!;
         box3.style.display = 'none';
         pointer.style.display = 'none';
       });
@@ -360,17 +358,11 @@ export class ViewManager {
         switch (evt.code) {
           case 'Equal':
             evt.preventDefault();
-            this.editorZoom = parseFloat(
-              Math.min(this.ZOOM_MAX, this.editorZoom + this.ZOOM_STEP).toFixed(2)
-            );
-            this.applyZoom();
+            this.adjustZoom(+this.ZOOM_STEP);
             break;
           case 'Minus':
             evt.preventDefault();
-            this.editorZoom = parseFloat(
-              Math.max(this.ZOOM_MIN, this.editorZoom - this.ZOOM_STEP).toFixed(2)
-            );
-            this.applyZoom();
+            this.adjustZoom(-this.ZOOM_STEP);
             break;
           case 'Digit0':
             evt.preventDefault();
@@ -395,6 +387,13 @@ export class ViewManager {
     container.style.setProperty('--editor-zoom', String(this.editorZoom));
     sessionStorage.setItem(this.ZOOM_KEY, String(this.editorZoom));
     this.updateLineHighlight();
+  }
+
+  private adjustZoom(delta: number): void {
+    this.editorZoom = parseFloat(
+      Math.min(this.ZOOM_MAX, Math.max(this.ZOOM_MIN, this.editorZoom + delta)).toFixed(2)
+    );
+    this.applyZoom();
   }
 
   private updateGutter(lineCount: number, presenting: boolean): void {

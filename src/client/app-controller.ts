@@ -45,6 +45,10 @@ export class AppController {
   private scrollToTopOnSave: boolean;
   private isFirstLoad = true;
 
+  private get isBusy(): boolean {
+    return this.lifecycleState === 'loading' || this.lifecycleState === 'saving';
+  }
+
   constructor(options: AppConfig) {
     this.scrollToTopOnSave = options.scrollToTopOnSave !== false;
 
@@ -99,21 +103,16 @@ export class AppController {
    */
   private handleRoot(state?: unknown): void {
     // Guard: can't create new while loading/saving
-    if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
-      return;
-    }
+    if (this.isBusy) return;
 
     this.isFirstLoad = false;
     const historyState = state as HistoryState | undefined;
     const targetScrollY = historyState?.scrollY ?? 0;
 
-    this.transitions.run(() => {
-      this.document.reset();
-      if (historyState?.content) this.document.content = historyState.content;
-      this.lifecycleState = 'editing';
-      this.view.renderFullState(this.document, 'editing');
-      window.scrollTo({ top: targetScrollY, behavior: 'instant' });
-    });
+    this.document.reset();
+    if (historyState?.content) this.document.content = historyState.content;
+    this.lifecycleState = 'editing';
+    this.renderWithTransition('editing', undefined, targetScrollY);
   }
 
   /**
@@ -121,9 +120,7 @@ export class AppController {
    */
   private newDocument(pushState: boolean): void {
     // Guard: can't create new while loading/saving
-    if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
-      return;
-    }
+    if (this.isBusy) return;
 
     if (pushState) {
       // Persist draft and scroll to current history entry before navigating
@@ -138,12 +135,9 @@ export class AppController {
       this.history.push('/');
     }
 
-    this.transitions.run(() => {
-      this.document.reset();
-      this.lifecycleState = 'editing';
-      this.view.renderFullState(this.document, 'editing');
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    });
+    this.document.reset();
+    this.lifecycleState = 'editing';
+    this.renderWithTransition('editing');
   }
 
   /**
@@ -193,12 +187,7 @@ export class AppController {
       this.history.push(buildPath(result.key, ext));
 
       // Render with transition
-      this.transitions.run(() => {
-        this.view.renderFullState(this.document, 'presenting', highlighted);
-        if (this.scrollToTopOnSave) {
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        }
-      });
+      this.renderWithTransition('presenting', highlighted, this.scrollToTopOnSave ? 0 : null);
     } catch (err) {
       console.error('Save failed:', err);
 
@@ -220,9 +209,7 @@ export class AppController {
     historyState?: HistoryState
   ): Promise<void> {
     // Guard: can't load while loading/saving
-    if (this.lifecycleState === 'loading' || this.lifecycleState === 'saving') {
-      return;
-    }
+    if (this.isBusy) return;
 
     // Parse key and extension
     const { key, ext } = parsePath(path);
@@ -260,14 +247,11 @@ export class AppController {
       const targetScrollY = historyState?.scrollY ?? 0;
 
       // Render with transition
-      this.transitions.run(() => {
-        this.view.renderFullState(
-          this.document,
-          defaultMode,
-          defaultMode === 'presenting' ? highlightResult.highlighted : undefined
-        );
-        window.scrollTo({ top: targetScrollY, behavior: 'instant' });
-      });
+      this.renderWithTransition(
+        defaultMode,
+        defaultMode === 'presenting' ? highlightResult.highlighted : undefined,
+        targetScrollY
+      );
     } catch (err) {
       console.error('Load failed:', err);
 
@@ -278,6 +262,19 @@ export class AppController {
       this.view.showError('Document not found.');
       this.view.renderFullState(this.document, 'editing');
     }
+  }
+
+  private renderWithTransition(
+    mode: 'editing' | 'presenting',
+    highlighted?: string,
+    scrollY: number | null = 0
+  ): void {
+    this.transitions.run(() => {
+      this.view.renderFullState(this.document, mode, highlighted);
+      if (scrollY !== null) {
+        window.scrollTo({ top: scrollY, behavior: 'instant' });
+      }
+    });
   }
 
   private captureScrollInHistory(): void {
