@@ -494,9 +494,7 @@ export class ViewManager {
       overlay.classList.remove('visible');
 
       const file = evt.dataTransfer?.files[0];
-      // Accept text/* and files with no MIME type (e.g. Makefile, .ts, .go)
-      const isText = !file?.type || file.type.startsWith('text/');
-      if (!file || !isText) return;
+      if (!file) return;
 
       const reader = new FileReader();
       reader.onload = () => {
