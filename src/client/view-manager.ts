@@ -75,6 +75,7 @@ export class ViewManager {
   private highlightCurrentLine: boolean;
   private currentLine: number = 0;
   private dragCounter: number = 0;
+  private dragSupported: boolean = true;
 
   constructor(options: RenderOptions) {
     this.appName = options.appName;
@@ -496,16 +497,23 @@ export class ViewManager {
 
   private setupDragDropHandlers(): void {
     const overlay = document.getElementById('drop-overlay')!;
+    const plaque = overlay.querySelector('.drop-overlay-plaque') as HTMLElement;
 
     document.addEventListener('dragenter', (evt) => {
       evt.preventDefault();
       this.dragCounter++;
-      if (this.dragCounter === 1) overlay.classList.add('visible');
+      if (this.dragCounter === 1) {
+        const mimeType = evt.dataTransfer?.items[0]?.type ?? '';
+        this.dragSupported = isTextFile(mimeType);
+        plaque.textContent = this.dragSupported ? 'Drop file to editor' : 'File type not supported';
+        overlay.classList.toggle('unsupported', !this.dragSupported);
+        overlay.classList.add('visible');
+      }
     });
 
     document.addEventListener('dragover', (evt) => {
       evt.preventDefault();
-      evt.dataTransfer!.dropEffect = 'copy';
+      evt.dataTransfer!.dropEffect = this.dragSupported ? 'copy' : 'none';
     });
 
     document.addEventListener('dragleave', () => {
