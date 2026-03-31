@@ -339,13 +339,21 @@ export class AppController {
   private handleFileDrop(content: string): void {
     if (this.isBusy) return;
 
-    this.transitions.run(() => {
-      this.document.reset();
-      this.document.content = content;
-      this.lifecycleState = 'editing';
-      // No history push -- URL stays at current location (mirrors handleDuplicate)
-      this.view.renderFullState(this.document, 'editing');
-    });
+    // Same history behaviour as New: persist draft/scroll, then navigate to /
+    if (this.lifecycleState === 'editing' && this.document.content) {
+      this.history.replace(window.location.pathname, {
+        content: this.document.content,
+        scrollY: window.scrollY,
+      });
+    } else {
+      this.captureScrollInHistory();
+    }
+    this.history.push('/');
+
+    this.document.reset();
+    this.document.content = content;
+    this.lifecycleState = 'editing';
+    this.renderWithTransition('editing');
   }
 
   /**
