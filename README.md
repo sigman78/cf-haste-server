@@ -129,15 +129,15 @@ DEFAULT_EXPIRE_DAYS = "30"     # Days until expiration
 ### Web Interface
 
 - Type or paste your content
-- Press **Ctrl+S** to save
+- Press **Ctrl+Enter** to save
 - Share the URL
 
 ### Keyboard Shortcuts
 
-- **Ctrl + S** - Save paste
-- **Ctrl + N** - New paste
-- **Ctrl + D** - Duplicate & edit
-- **Ctrl + T** - Share on Twitter
+- **Ctrl+Enter** (or Ctrl+S) - Save paste
+- **Alt+Shift+N** - New paste
+- **Alt+Shift+D** - Duplicate & edit
+- **Alt+Shift+X** - Share on Twitter
 
 ### API
 

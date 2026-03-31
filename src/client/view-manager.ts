@@ -272,31 +272,31 @@ export class ViewManager {
     const labelEl = document.querySelector('#box3 .label') as HTMLElement;
     const shortcutEl = document.querySelector('#box3 .shortcut') as HTMLElement;
 
-    const mod = 'ctrl';
+    const alt = this.isMac ? 'opt' : 'alt';
     const buttons = [
       {
         selector: '.save',
         action: () => this.callbacks?.onSave(),
         label: 'Save',
-        shortcut: `${mod} + s`,
+        shortcut: 'ctrl + enter',
       },
       {
         selector: '.new',
         action: () => this.callbacks?.onNew(),
         label: 'New',
-        shortcut: `${mod} + n`,
+        shortcut: `${alt} + shift + n`,
       },
       {
         selector: '.duplicate',
         action: () => this.callbacks?.onDuplicate(),
         label: 'Duplicate & Edit',
-        shortcut: `${mod} + d`,
+        shortcut: `${alt} + shift + d`,
       },
       {
         selector: '.twitter',
         action: () => this.callbacks?.onTwitter(),
         label: 'Twitter',
-        shortcut: `${mod} + t`,
+        shortcut: `${alt} + shift + x`,
       },
     ];
 
@@ -333,16 +333,23 @@ export class ViewManager {
    */
   private setupKeyboardShortcuts(): void {
     document.body.addEventListener('keydown', (evt) => {
-      const ctrlHot = evt.ctrlKey;
+      const ctrlHot = evt.ctrlKey && !evt.altKey && !evt.shiftKey;
+      const altShift = evt.altKey && evt.shiftKey;
       const fontHot = evt.altKey && (this.isMac ? evt.metaKey : evt.ctrlKey);
 
       if (ctrlHot) {
         switch (evt.key.toLowerCase()) {
           case 's':
           case 'l':
+          case 'enter':
             evt.preventDefault();
             this.callbacks?.onSave();
             break;
+        }
+      }
+
+      if (altShift) {
+        switch (evt.key.toLowerCase()) {
           case 'n':
             evt.preventDefault();
             this.callbacks?.onNew();
@@ -351,7 +358,7 @@ export class ViewManager {
             evt.preventDefault();
             this.callbacks?.onDuplicate();
             break;
-          case 't':
+          case 'x':
             evt.preventDefault();
             this.callbacks?.onTwitter();
             break;

@@ -7,17 +7,17 @@ Haste is the prettiest, easiest to use pastebin ever made.
 
 ## Basic Usage
 
-Type what you want to share, press **Ctrl+S** to save, and then copy the URL. Send that URL
+Type what you want to share, press **Ctrl+Enter** to save, and then copy the URL. Send that URL
 to someone and they'll see exactly what you see.
 
-To make a new entry, click "New" (or press **Ctrl+N**)
+To make a new entry, click "New" (or press **Alt+Shift+N**)
 
 ## Keyboard Shortcuts
 
-- **Ctrl+S** - Save your paste
-- **Ctrl+N** - Create new paste
-- **Ctrl+D** - Duplicate and edit
-- **Ctrl+T** - Share on Twitter
+- **Ctrl+Enter** (or Ctrl+S) - Save your paste
+- **Alt+Shift+N** - Create new paste
+- **Alt+Shift+D** - Duplicate and edit
+- **Alt+Shift+X** - Share on Twitter
 
 ## Duration
 
