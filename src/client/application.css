@@ -173,7 +173,6 @@ body {
     overflow-y: hidden;
     field-sizing: content;
     tab-size: 2;
-    scrollbar-width: thin;
     min-height: calc(100vh - 2 * var(--body-padding));
     position: relative;
     z-index: 1;
