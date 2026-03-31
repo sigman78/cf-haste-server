@@ -14,6 +14,31 @@
 import type { Paste } from './paste';
 import './solarized-dark-hljs.css';
 
+// MIME types that are not text/* but contain human-readable text content
+const TEXT_APPLICATION_TYPES = new Set([
+  'application/json',
+  'application/ld+json',
+  'application/xml',
+  'application/xhtml+xml',
+  'application/javascript',
+  'application/x-javascript',
+  'application/typescript',
+  'application/x-typescript',
+  'application/yaml',
+  'application/x-yaml',
+  'application/toml',
+  'application/graphql',
+  'application/x-sh',
+  'application/x-httpd-php',
+  'application/sql',
+]);
+
+function isTextFile(mimeType: string): boolean {
+  if (!mimeType) return true; // no MIME set (e.g. Makefile, Dockerfile)
+  if (mimeType.startsWith('text/')) return true;
+  return TEXT_APPLICATION_TYPES.has(mimeType);
+}
+
 export interface ViewCallbacks {
   onSave: () => void;
   onNew: () => void;
@@ -494,7 +519,7 @@ export class ViewManager {
       overlay.classList.remove('visible');
 
       const file = evt.dataTransfer?.files[0];
-      if (!file) return;
+      if (!file || !isTextFile(file.type)) return;
 
       const reader = new FileReader();
       reader.onload = () => {
