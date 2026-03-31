@@ -1,10 +1,24 @@
-# cf-haste
+```
+ _   _           _
+| | | | __ _ ___| |_ ___
+| |_| |/ _` / __| __/ _ \
+|  _  | (_| \__ \ ||  __/
+|_| |_|\__,_|___/\__\___|
+
+Cloudflare Workers Edition
+```
+
+> Original [haste-server](https://github.com/seejohnrun/haste-server) by John Crepezzi, modernized for Cloudflare's edge network.
 
 A pastebin that runs on Cloudflare Workers. [Demo](https://haste.sigman78.workers.dev/)
 
-Fork of [haste-server](https://github.com/seejohnrun/haste-server) rewritten for the edge: no Node.js, no Redis, no cold starts. Uses D1 (SQLite) for storage and Vite + TypeScript on the frontend.
+## Why this fork
 
-## Setup
+The original runs on Node.js + Redis. This version drops both: Workers replace the server, D1 (SQLite at the edge) replaces Redis. No cold starts, global distribution, fits in the free tier for personal use.
+
+Rewritten in TypeScript with Vite, no jQuery.
+
+## Quick start
 
 ```bash
 npm install
@@ -20,9 +34,11 @@ npm run db:migrate:remote
 npm run deploy
 ```
 
+Your instance will be live at `https://haste.YOUR-SUBDOMAIN.workers.dev`.
+
 ## Config
 
-`wrangler.toml` vars:
+Edit `wrangler.toml` vars:
 
 | Variable              | Default | Description             |
 | --------------------- | ------- | ----------------------- |
@@ -52,3 +68,7 @@ curl https://your-worker.dev/raw/KEY
 ```bash
 npm test
 ```
+
+## License
+
+MIT. Original Haste by [John Crepezzi](https://github.com/seejohnrun).
