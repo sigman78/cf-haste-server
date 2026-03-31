@@ -98,6 +98,7 @@ body {
     align-items: flex-start;
     --editor-zoom: 1;
     overflow-x: auto;
+    overflow-y: hidden;
     position: relative;
 
     /* Consolidated typography - all children inherit these */
