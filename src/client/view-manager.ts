@@ -14,31 +14,6 @@
 import type { Paste } from './paste';
 import './solarized-dark-hljs.css';
 
-// MIME types that are not text/* but contain human-readable text content
-const TEXT_APPLICATION_TYPES = new Set([
-  'application/json',
-  'application/ld+json',
-  'application/xml',
-  'application/xhtml+xml',
-  'application/javascript',
-  'application/x-javascript',
-  'application/typescript',
-  'application/x-typescript',
-  'application/yaml',
-  'application/x-yaml',
-  'application/toml',
-  'application/graphql',
-  'application/x-sh',
-  'application/x-httpd-php',
-  'application/sql',
-]);
-
-function isTextFile(mimeType: string): boolean {
-  if (!mimeType) return true; // no MIME set (e.g. Makefile, Dockerfile)
-  if (mimeType.startsWith('text/')) return true;
-  return TEXT_APPLICATION_TYPES.has(mimeType);
-}
-
 export interface ViewCallbacks {
   onSave: () => void;
   onNew: () => void;
@@ -75,7 +50,6 @@ export class ViewManager {
   private highlightCurrentLine: boolean;
   private currentLine: number = 0;
   private dragCounter: number = 0;
-  private dragSupported: boolean = true;
 
   constructor(options: RenderOptions) {
     this.appName = options.appName;
@@ -498,23 +472,18 @@ export class ViewManager {
 
   private setupDragDropHandlers(): void {
     const overlay = document.getElementById('drop-overlay')!;
-    const plaque = overlay.querySelector('.drop-overlay-plaque') as HTMLElement;
 
     document.addEventListener('dragenter', (evt) => {
       evt.preventDefault();
       this.dragCounter++;
       if (this.dragCounter === 1) {
-        const mimeType = evt.dataTransfer?.items[0]?.type ?? '';
-        this.dragSupported = isTextFile(mimeType);
-        plaque.textContent = this.dragSupported ? 'Drop file to editor' : 'File type not supported';
-        overlay.classList.toggle('unsupported', !this.dragSupported);
         overlay.classList.add('visible');
       }
     });
 
     document.addEventListener('dragover', (evt) => {
       evt.preventDefault();
-      evt.dataTransfer!.dropEffect = this.dragSupported ? 'copy' : 'none';
+      evt.dataTransfer!.dropEffect = 'copy';
     });
 
     document.addEventListener('dragleave', () => {
@@ -528,7 +497,7 @@ export class ViewManager {
       overlay.classList.remove('visible');
 
       const file = evt.dataTransfer?.files[0];
-      if (!file || !isTextFile(file.type)) return;
+      if (!file) return;
 
       const reader = new FileReader();
       reader.onload = () => {
