@@ -20,6 +20,7 @@ export interface ViewCallbacks {
   onDuplicate: () => void;
   onTwitter: () => void;
   onContentInput: (content: string) => void;
+  onFileDrop: (content: string) => void;
 }
 
 export interface RenderOptions {
@@ -48,6 +49,7 @@ export class ViewManager {
   private lineHighlight: HTMLDivElement | null = null;
   private highlightCurrentLine: boolean;
   private currentLine: number = 0;
+  private dragCounter: number = 0;
 
   constructor(options: RenderOptions) {
     this.appName = options.appName;
@@ -91,6 +93,7 @@ export class ViewManager {
     this.setupEditorHandlers();
     this.setupLineHighlightListeners();
     this.initZoom();
+    this.setupDragDropHandlers();
   }
 
   /**
@@ -464,6 +467,44 @@ export class ViewManager {
     this.lineHighlight.style.setProperty('--line-index', String(lineNumber - 1));
     this.lineHighlight.classList.add('visible');
     this.currentLine = lineNumber;
+  }
+
+  private setupDragDropHandlers(): void {
+    const overlay = document.getElementById('drop-overlay')!;
+
+    document.addEventListener('dragenter', (evt) => {
+      evt.preventDefault();
+      this.dragCounter++;
+      if (this.dragCounter === 1) overlay.classList.add('visible');
+    });
+
+    document.addEventListener('dragover', (evt) => {
+      evt.preventDefault();
+      evt.dataTransfer!.dropEffect = 'copy';
+    });
+
+    document.addEventListener('dragleave', () => {
+      this.dragCounter--;
+      if (this.dragCounter === 0) overlay.classList.remove('visible');
+    });
+
+    document.addEventListener('drop', (evt) => {
+      evt.preventDefault();
+      this.dragCounter = 0;
+      overlay.classList.remove('visible');
+
+      const file = evt.dataTransfer?.files[0];
+      // Accept text/* and files with no MIME type (e.g. Makefile, .ts, .go)
+      const isText = !file?.type || file.type.startsWith('text/');
+      if (!file || !isText) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = reader.result as string;
+        if (content !== '') this.callbacks?.onFileDrop(content);
+      };
+      reader.readAsText(file);
+    });
   }
 
   /**

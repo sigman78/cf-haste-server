@@ -408,3 +408,27 @@ body {
 	}
 }
 
+#drop-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    background: rgba(0, 43, 54, 0.85);
+    pointer-events: none;
+    align-items: center;
+    justify-content: center;
+}
+
+#drop-overlay.visible {
+    display: flex;
+}
+
+.drop-overlay-plaque {
+    padding: 20px 36px;
+    background: var(--color-key-bg);
+    color: var(--color-editor-text);
+    font-family: var(--font-ui);
+    font-size: var(--font-size-editor);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}

@@ -70,6 +70,7 @@ export class AppController {
       onDuplicate: () => this.handleDuplicate(),
       onTwitter: () => this.handleTwitter(),
       onContentInput: (content) => this.handleContentInput(content),
+      onFileDrop: (content) => this.handleFileDrop(content),
     });
 
     // Initialize history manager
@@ -333,6 +334,18 @@ export class AppController {
     if (this.lifecycleState === 'presenting') {
       window.open('https://twitter.com/share?url=' + encodeURI(window.location.href));
     }
+  }
+
+  private handleFileDrop(content: string): void {
+    if (this.isBusy) return;
+
+    this.transitions.run(() => {
+      this.document.reset();
+      this.document.content = content;
+      this.lifecycleState = 'editing';
+      // No history push -- URL stays at current location (mirrors handleDuplicate)
+      this.view.renderFullState(this.document, 'editing');
+    });
   }
 
   /**
