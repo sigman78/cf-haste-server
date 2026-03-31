@@ -336,9 +336,9 @@ test.describe('Paste lifecycle', () => {
     await waitForPresentingMode(page);
   });
 
-  // -- 14. Keyboard shortcut: Ctrl+N for new ---------------------------------
+  // -- 14. Keyboard shortcut: Alt+Shift+N for new ----------------------------
 
-  test('14 - Ctrl+N from presenting creates new document', async ({ page }) => {
+  test('14 - Alt+Shift+N from presenting creates new document', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
     await waitForEditingMode(page);
@@ -348,15 +348,15 @@ test.describe('Paste lifecycle', () => {
     await page.waitForURL(/\/testkey0/);
     await waitForPresentingMode(page);
 
-    await page.keyboard.press('Control+n');
+    await page.keyboard.press('Alt+Shift+N');
     await page.waitForURL('/');
     await waitForEditingMode(page);
     await expect(page.locator(S.editor)).toHaveValue('');
   });
 
-  // -- 15. Keyboard shortcut: Ctrl+D for duplicate ---------------------------
+  // -- 15. Keyboard shortcut: Alt+Shift+D for duplicate ----------------------
 
-  test('15 - Ctrl+D from presenting duplicates to editor', async ({ page }) => {
+  test('15 - Alt+Shift+D from presenting duplicates to editor', async ({ page }) => {
     await setupMockApi(page);
     await page.goto('/');
     await waitForEditingMode(page);
@@ -366,7 +366,7 @@ test.describe('Paste lifecycle', () => {
     await page.waitForURL(/\/testkey0/);
     await waitForPresentingMode(page);
 
-    await page.keyboard.press('Control+d');
+    await page.keyboard.press('Alt+Shift+D');
     await waitForEditingMode(page);
     await expect(page).toHaveURL(/\/testkey0/); // no /edit suffix
     await expect(page.locator(S.editor)).toHaveValue('to be forked');
