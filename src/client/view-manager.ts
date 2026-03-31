@@ -199,6 +199,7 @@ export class ViewManager {
       this.viewer.style.display = 'none';
       this.editor.value = state.content;
       this.editor.focus();
+      this.editor.scrollTop = 0; // force reflow so field-sizing:content takes effect immediately
       const lineCount = state.content === '' ? 1 : (state.content.match(/\n/g) ?? []).length + 1;
       this.updateGutter(lineCount, false);
       this.updateLineHighlight();
