@@ -118,17 +118,7 @@ export class AppController {
     if (this.isBusy) return;
 
     if (pushState) {
-      // Persist draft and scroll to current history entry before navigating
-      if (this.viewMode === 'editing' && this.document.content) {
-        this.navigation.replaceDraft(
-          window.location.pathname,
-          this.document.content,
-          window.scrollY
-        );
-      } else {
-        this.captureScrollInHistory();
-      }
-      this.navigation.pushPath('/');
+      this.openDraftEntry();
     }
 
     this.document.reset();
@@ -251,12 +241,7 @@ export class AppController {
    * Handle save button/shortcut
    */
   private handleSave(): void {
-    if (this.viewMode === 'editing' && this.activity === 'idle') {
-      const content = this.view.getContentFromDOM();
-      if (content.trim()) {
-        this.saveDocument();
-      }
-    }
+    void this.saveDocument();
   }
 
   /**
@@ -299,13 +284,7 @@ export class AppController {
   private handleFileDrop(content: string): void {
     if (this.isBusy) return;
 
-    // Same history behaviour as New: persist draft/scroll, then navigate to /
-    if (this.viewMode === 'editing' && this.document.content) {
-      this.navigation.replaceDraft(window.location.pathname, this.document.content, window.scrollY);
-    } else {
-      this.captureScrollInHistory();
-    }
-    this.navigation.pushPath('/');
+    this.openDraftEntry();
 
     this.document.reset();
     this.document.content = content;
@@ -321,5 +300,14 @@ export class AppController {
       this.document.content = content;
       this.view.renderUIState(this.document, 'editing');
     }
+  }
+
+  private openDraftEntry(): void {
+    if (this.viewMode === 'editing' && this.document.content) {
+      this.navigation.replaceDraft(window.location.pathname, this.document.content, window.scrollY);
+    } else {
+      this.captureScrollInHistory();
+    }
+    this.navigation.pushPath('/');
   }
 }

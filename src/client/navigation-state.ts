@@ -7,16 +7,18 @@ export class NavigationState {
   private handler: ((path: string, state: HistoryState | undefined) => void) | null = null;
   private lastPathname: string = window.location.pathname;
 
-  onNavigate(handler: (path: string, state: HistoryState | undefined) => void): void {
-    this.handler = handler;
-    this.lastPathname = window.location.pathname;
-
+  constructor() {
     window.addEventListener('popstate', (e) => {
       const pathname = window.location.pathname;
       if (pathname === this.lastPathname) return;
       this.lastPathname = pathname;
-      handler(pathname, this.read(e.state));
+      this.handler?.(pathname, this.read(e.state));
     });
+  }
+
+  onNavigate(handler: (path: string, state: HistoryState | undefined) => void): void {
+    this.handler = handler;
+    this.lastPathname = window.location.pathname;
   }
 
   resolve(): void {
