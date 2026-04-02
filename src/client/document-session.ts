@@ -5,7 +5,7 @@ import {
   getExtensionForLanguage,
   getLanguageForExtension,
 } from './highlight-config';
-import { buildPath, parsePath } from './path-utils';
+import { buildPath, type ParsedPath } from './path-utils';
 
 export interface DocumentRenderResult {
   document: {
@@ -38,10 +38,9 @@ export class DocumentSession {
     };
   }
 
-  async load(path: string): Promise<DocumentRenderResult> {
-    const { key, ext } = parsePath(path);
-    const urlLanguage = ext ? getLanguageForExtension(ext) : undefined;
-    const result = await this.storage.load(key);
+  async load(path: ParsedPath): Promise<DocumentRenderResult> {
+    const urlLanguage = path.ext ? getLanguageForExtension(path.ext) : undefined;
+    const result = await this.storage.load(path.key);
     const highlightResult = highlightContent(result.content, urlLanguage || result.language);
     const language = highlightResult.language || urlLanguage || result.language;
 
@@ -55,7 +54,7 @@ export class DocumentSession {
       highlighted: highlightResult.highlighted,
       canonicalPath: language
         ? buildPath(result.key, getExtensionForLanguage(language))
-        : buildPath(key),
+        : buildPath(path.key),
     };
   }
 

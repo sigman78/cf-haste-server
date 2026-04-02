@@ -12,11 +12,12 @@ import { Paste } from './paste';
 import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
 import appConfig from './config';
-import { parsePath } from './path-utils';
+import { parsePath, type ParsedPath } from './path-utils';
 import { DocumentSession } from './document-session';
 import { NavigationState, type HistoryState } from './navigation-state';
 
-type DocumentLifecycleState = 'loading' | 'editing' | 'presenting' | 'saving';
+type ViewMode = 'editing' | 'presenting';
+type ActivityState = 'idle' | 'loading' | 'saving';
 
 export interface AppConfig {
   appName: string;
@@ -35,12 +36,13 @@ export class AppController {
   private navigation: NavigationState;
 
   // State machine
-  private lifecycleState: DocumentLifecycleState = 'editing';
+  private viewMode: ViewMode = 'editing';
+  private activity: ActivityState = 'idle';
   private scrollToTopOnSave: boolean;
   private isFirstLoad = true;
 
   private get isBusy(): boolean {
-    return this.lifecycleState === 'loading' || this.lifecycleState === 'saving';
+    return this.activity !== 'idle';
   }
 
   constructor(options: AppConfig) {
@@ -70,10 +72,11 @@ export class AppController {
     // Initialize history manager
     this.navigation = new NavigationState();
     this.navigation.onNavigate((path, state) => {
-      if (!parsePath(path).key) {
+      const route = parsePath(path);
+      if (!route.key) {
         this.handleRoot(state);
       } else {
-        this.loadDocumentByPath(path.slice(1), 'presenting', state as HistoryState);
+        this.loadDocumentByPath(route, 'presenting', state as HistoryState);
       }
     });
   }
@@ -85,7 +88,7 @@ export class AppController {
     history.scrollRestoration = 'manual';
     this.view.init();
     window.addEventListener('beforeunload', (e) => {
-      if (this.lifecycleState === 'editing' && this.document.content.trim()) {
+      if (this.viewMode === 'editing' && this.document.content.trim()) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -105,8 +108,7 @@ export class AppController {
 
     this.document.reset();
     if (historyState?.content) this.document.content = historyState.content;
-    this.lifecycleState = 'editing';
-    this.renderWithTransition('editing', undefined, targetScrollY);
+    this.transitionToView('editing', { scrollY: targetScrollY });
   }
 
   /**
@@ -117,7 +119,7 @@ export class AppController {
 
     if (pushState) {
       // Persist draft and scroll to current history entry before navigating
-      if (this.lifecycleState === 'editing' && this.document.content) {
+      if (this.viewMode === 'editing' && this.document.content) {
         this.navigation.replaceDraft(
           window.location.pathname,
           this.document.content,
@@ -130,15 +132,14 @@ export class AppController {
     }
 
     this.document.reset();
-    this.lifecycleState = 'editing';
-    this.renderWithTransition('editing');
+    this.transitionToView('editing');
   }
 
   /**
    * Command: Save current document
    */
   private async saveDocument(): Promise<void> {
-    if (this.lifecycleState !== 'editing') {
+    if (this.viewMode !== 'editing' || this.activity !== 'idle') {
       return;
     }
 
@@ -150,30 +151,30 @@ export class AppController {
     this.document.content = content;
 
     try {
-      this.lifecycleState = 'saving';
+      this.activity = 'saving';
       this.view.showProgress();
 
       const result = await this.session.save(this.document.content);
       this.session.apply(this.document, result);
 
-      this.lifecycleState = 'presenting';
+      this.activity = 'idle';
       setTimeout(() => {
         this.view.hideProgress();
       }, 500);
 
       this.navigation.replaceDraft(window.location.pathname, content, window.scrollY);
       this.navigation.pushPath(result.canonicalPath);
-      this.renderWithTransition(
-        'presenting',
-        result.highlighted,
-        this.scrollToTopOnSave ? 0 : null
-      );
+      this.transitionToView('presenting', {
+        highlighted: result.highlighted,
+        scrollY: this.scrollToTopOnSave ? 0 : null,
+      });
     } catch (err) {
       console.error('Save failed:', err);
 
       // Fallback: stay in editing mode
       this.view.hideProgress();
-      this.lifecycleState = 'editing';
+      this.activity = 'idle';
+      this.viewMode = 'editing';
       this.view.renderUIState(this.document, 'editing');
 
       this.view.showError('Failed to save. Please try again.');
@@ -184,29 +185,27 @@ export class AppController {
    * Load document by path (key with optional extension)
    */
   private async loadDocumentByPath(
-    path: string,
+    path: ParsedPath,
     defaultMode: 'editing' | 'presenting',
     historyState?: HistoryState
   ): Promise<void> {
     // Guard: can't load while loading/saving
     if (this.isBusy) return;
 
-    const { ext } = parsePath(path);
-
     const hideWhileLoading = this.isFirstLoad;
     this.isFirstLoad = false;
-    this.lifecycleState = 'loading';
+    this.activity = 'loading';
     if (hideWhileLoading) this.view.renderLoadingState();
     try {
       const result = await this.session.load(path);
       this.session.apply(this.document, result);
 
-      this.lifecycleState = defaultMode;
+      this.activity = 'idle';
 
       // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
       if (
         defaultMode === 'presenting' &&
-        !ext &&
+        !path.ext &&
         result.canonicalPath !== window.location.pathname
       ) {
         this.navigation.replacePath(result.canonicalPath);
@@ -215,32 +214,31 @@ export class AppController {
       const targetScrollY = historyState?.scrollY ?? 0;
 
       // Render with transition
-      this.renderWithTransition(
-        defaultMode,
-        defaultMode === 'presenting' ? result.highlighted : undefined,
-        targetScrollY
-      );
+      this.transitionToView(defaultMode, {
+        highlighted: defaultMode === 'presenting' ? result.highlighted : undefined,
+        scrollY: targetScrollY,
+      });
     } catch (err) {
       console.error('Load failed:', err);
 
       // Fallback: show new document
-      this.lifecycleState = 'editing';
+      this.activity = 'idle';
       this.document.reset();
       this.navigation.replacePath('/');
       this.view.showError('Document not found.');
-      this.view.renderFullState(this.document, 'editing');
+      this.transitionToView('editing');
     }
   }
 
-  private renderWithTransition(
-    mode: 'editing' | 'presenting',
-    highlighted?: string,
-    scrollY: number | null = 0
+  private transitionToView(
+    mode: ViewMode,
+    options: { highlighted?: string; scrollY?: number | null } = {}
   ): void {
+    this.viewMode = mode;
     this.transitions.run(() => {
-      this.view.renderFullState(this.document, mode, highlighted);
-      if (scrollY !== null) {
-        window.scrollTo({ top: scrollY, behavior: 'instant' });
+      this.view.renderFullState(this.document, mode, options.highlighted);
+      if (options.scrollY !== null && options.scrollY !== undefined) {
+        window.scrollTo({ top: options.scrollY, behavior: 'instant' });
       }
     });
   }
@@ -253,7 +251,7 @@ export class AppController {
    * Handle save button/shortcut
    */
   private handleSave(): void {
-    if (this.lifecycleState === 'editing') {
+    if (this.viewMode === 'editing' && this.activity === 'idle') {
       const content = this.view.getContentFromDOM();
       if (content.trim()) {
         this.saveDocument();
@@ -265,9 +263,9 @@ export class AppController {
    * Handle new button/shortcut
    */
   private handleNew(): void {
-    if (this.lifecycleState === 'editing' || this.lifecycleState === 'presenting') {
+    if (this.viewMode === 'editing' || this.viewMode === 'presenting') {
       if (
-        this.lifecycleState === 'editing' &&
+        this.viewMode === 'editing' &&
         this.document.content.trim() &&
         !window.confirm('Discard unsaved changes?')
       ) {
@@ -281,14 +279,11 @@ export class AppController {
    * Handle duplicate button/shortcut
    */
   private handleDuplicate(): void {
-    if (this.lifecycleState === 'presenting' && !this.document.frozen) {
+    if (this.viewMode === 'presenting' && this.activity === 'idle' && !this.document.frozen) {
       const content = this.document.content;
-      this.transitions.run(() => {
-        this.document.reset();
-        this.document.content = content;
-        this.lifecycleState = 'editing';
-        this.view.renderFullState(this.document, 'editing');
-      });
+      this.document.reset();
+      this.document.content = content;
+      this.transitionToView('editing');
     }
   }
 
@@ -296,7 +291,7 @@ export class AppController {
    * Handle twitter button/shortcut
    */
   private handleTwitter(): void {
-    if (this.lifecycleState === 'presenting') {
+    if (this.viewMode === 'presenting' && this.activity === 'idle') {
       window.open('https://twitter.com/share?url=' + encodeURI(window.location.href));
     }
   }
@@ -305,7 +300,7 @@ export class AppController {
     if (this.isBusy) return;
 
     // Same history behaviour as New: persist draft/scroll, then navigate to /
-    if (this.lifecycleState === 'editing' && this.document.content) {
+    if (this.viewMode === 'editing' && this.document.content) {
       this.navigation.replaceDraft(window.location.pathname, this.document.content, window.scrollY);
     } else {
       this.captureScrollInHistory();
@@ -314,8 +309,7 @@ export class AppController {
 
     this.document.reset();
     this.document.content = content;
-    this.lifecycleState = 'editing';
-    this.renderWithTransition('editing');
+    this.transitionToView('editing');
   }
 
   /**
@@ -323,7 +317,7 @@ export class AppController {
    */
   private handleContentInput(content: string): void {
     // During editing phase, textarea owns content
-    if (this.lifecycleState === 'editing') {
+    if (this.viewMode === 'editing') {
       this.document.content = content;
       this.view.renderUIState(this.document, 'editing');
     }

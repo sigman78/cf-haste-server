@@ -1,4 +1,9 @@
-export function parsePath(pathname: string): { key: string; ext?: string } {
+export interface ParsedPath {
+  key: string;
+  ext?: string;
+}
+
+export function parsePath(pathname: string): ParsedPath {
   const raw = pathname.startsWith('/') ? pathname.slice(1) : pathname;
   const dot = raw.indexOf('.');
   if (dot === -1) return { key: raw };
