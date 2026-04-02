@@ -20,15 +20,10 @@ export class Paste {
     this.frozen = false;
   }
 
-  restore(data: { content: string; key?: string; language?: string; frozen?: boolean }): void {
+  apply(data: { content: string; key?: string; language?: string; frozen?: boolean }): void {
     this.content = data.content;
     this.key = data.key;
     this.language = data.language;
     this.frozen = data.frozen ?? false;
-  }
-
-  markSaved(key: string, language?: string): void {
-    this.key = key;
-    this.language = language;
   }
 }

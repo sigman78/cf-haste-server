@@ -1,4 +1,3 @@
-import { Paste } from './paste';
 import { StorageService } from './storage';
 import {
   highlightContent,
@@ -8,7 +7,7 @@ import {
 import { buildPath, type ParsedPath } from './path-utils';
 
 export interface DocumentRenderResult {
-  document: {
+  paste: {
     content: string;
     key: string;
     language?: string;
@@ -28,7 +27,7 @@ export class DocumentSession {
     const ext = language ? getExtensionForLanguage(language) : undefined;
 
     return {
-      document: {
+      paste: {
         content,
         key: result.key,
         language,
@@ -45,7 +44,7 @@ export class DocumentSession {
     const language = highlightResult.language || urlLanguage || result.language;
 
     return {
-      document: {
+      paste: {
         content: result.content,
         key: result.key,
         language,
@@ -56,9 +55,5 @@ export class DocumentSession {
         ? buildPath(result.key, getExtensionForLanguage(language))
         : buildPath(path.key),
     };
-  }
-
-  apply(target: Paste, result: DocumentRenderResult): void {
-    target.restore(result.document);
   }
 }

@@ -155,7 +155,7 @@ export class AppController {
       this.view.showProgress();
 
       const result = await this.session.save(this.document.content);
-      this.session.apply(this.document, result);
+      this.document.apply(result.paste);
 
       this.activity = 'idle';
       setTimeout(() => {
@@ -198,7 +198,7 @@ export class AppController {
     if (hideWhileLoading) this.view.renderLoadingState();
     try {
       const result = await this.session.load(path);
-      this.session.apply(this.document, result);
+      this.document.apply(result.paste);
 
       this.activity = 'idle';
 
