@@ -9,20 +9,14 @@
  */
 
 import { Paste } from './paste';
-import { StorageService } from './storage';
 import { ViewManager } from './view-manager';
 import { TransitionManager } from './transition-manager';
-import { HistoryManager } from './history-manager';
-import {
-  highlightContent,
-  getExtensionForLanguage,
-  getLanguageForExtension,
-} from './highlight-config';
 import appConfig from './config';
-import { parsePath, buildPath } from './path-utils';
+import { parsePath } from './path-utils';
+import { DocumentSession } from './document-session';
+import { NavigationState, type HistoryState } from './navigation-state';
 
 type DocumentLifecycleState = 'loading' | 'editing' | 'presenting' | 'saving';
-type HistoryState = { content?: string; scrollY?: number };
 
 export interface AppConfig {
   appName: string;
@@ -35,10 +29,10 @@ export interface AppConfig {
 export class AppController {
   // Module dependencies
   private document: Paste;
-  private storage: StorageService;
+  private session: DocumentSession;
   private view: ViewManager;
   private transitions: TransitionManager;
-  private history: HistoryManager;
+  private navigation: NavigationState;
 
   // State machine
   private lifecycleState: DocumentLifecycleState = 'editing';
@@ -54,7 +48,7 @@ export class AppController {
 
     // Initialize modules
     this.document = new Paste();
-    this.storage = new StorageService();
+    this.session = new DocumentSession();
     this.view = new ViewManager({
       appName: options.appName,
       enableTwitter: options.enableTwitter,
@@ -74,8 +68,8 @@ export class AppController {
     });
 
     // Initialize history manager
-    this.history = new HistoryManager();
-    this.history.onNavigate((path, state) => {
+    this.navigation = new NavigationState();
+    this.navigation.onNavigate((path, state) => {
       if (!parsePath(path).key) {
         this.handleRoot(state);
       } else {
@@ -96,14 +90,13 @@ export class AppController {
         e.returnValue = '';
       }
     });
-    this.history.resolve();
+    this.navigation.resolve();
   }
 
   /**
    * Handle root route (/)
    */
   private handleRoot(state?: unknown): void {
-    // Guard: can't create new while loading/saving
     if (this.isBusy) return;
 
     this.isFirstLoad = false;
@@ -120,20 +113,20 @@ export class AppController {
    * Command: Create new document
    */
   private newDocument(pushState: boolean): void {
-    // Guard: can't create new while loading/saving
     if (this.isBusy) return;
 
     if (pushState) {
       // Persist draft and scroll to current history entry before navigating
       if (this.lifecycleState === 'editing' && this.document.content) {
-        this.history.replace(window.location.pathname, {
-          content: this.document.content,
-          scrollY: window.scrollY,
-        });
+        this.navigation.replaceDraft(
+          window.location.pathname,
+          this.document.content,
+          window.scrollY
+        );
       } else {
         this.captureScrollInHistory();
       }
-      this.history.push('/');
+      this.navigation.pushPath('/');
     }
 
     this.document.reset();
@@ -145,50 +138,36 @@ export class AppController {
    * Command: Save current document
    */
   private async saveDocument(): Promise<void> {
-    // Guard: must be in editing state
     if (this.lifecycleState !== 'editing') {
       return;
     }
 
-    // Guard: must have content
     const content = this.view.getContentFromDOM();
     if (!content.trim()) {
       return;
     }
 
-    // Update content from DOM
     this.document.content = content;
 
     try {
-      // Update state
       this.lifecycleState = 'saving';
       this.view.showProgress();
 
-      // Perform save (async)
-      const result = await this.storage.save(this.document.content);
+      const result = await this.session.save(this.document.content);
+      this.session.apply(this.document, result);
 
-      // Highlight content and detect language in a single pass
-      const { highlighted, language } = highlightContent(content);
-
-      // Update document
-      this.document.markSaved(result.key, language);
-
-      // Update state
       this.lifecycleState = 'presenting';
       setTimeout(() => {
         this.view.hideProgress();
       }, 500);
 
-      const ext = language ? getExtensionForLanguage(language) : undefined;
-
-      // Bug C3 fix: persist draft to current history entry before navigating to saved doc
-      this.history.replace(window.location.pathname, { content: content, scrollY: window.scrollY });
-
-      // Push new history entry
-      this.history.push(buildPath(result.key, ext));
-
-      // Render with transition
-      this.renderWithTransition('presenting', highlighted, this.scrollToTopOnSave ? 0 : null);
+      this.navigation.replaceDraft(window.location.pathname, content, window.scrollY);
+      this.navigation.pushPath(result.canonicalPath);
+      this.renderWithTransition(
+        'presenting',
+        result.highlighted,
+        this.scrollToTopOnSave ? 0 : null
+      );
     } catch (err) {
       console.error('Save failed:', err);
 
@@ -212,37 +191,25 @@ export class AppController {
     // Guard: can't load while loading/saving
     if (this.isBusy) return;
 
-    // Parse key and extension
-    const { key, ext } = parsePath(path);
-    const urlLanguage = ext ? getLanguageForExtension(ext) : undefined;
+    const { ext } = parsePath(path);
 
     const hideWhileLoading = this.isFirstLoad;
     this.isFirstLoad = false;
     this.lifecycleState = 'loading';
     if (hideWhileLoading) this.view.renderLoadingState();
     try {
-      // Load from storage
-      const result = await this.storage.load(key);
-
-      // Highlight content (with language hint if available)
-      const highlightResult = highlightContent(result.content, urlLanguage || result.language);
-
-      // Update model with the final language (detected or provided)
-      this.document.restore({
-        content: result.content,
-        key: result.key,
-        language: highlightResult.language || urlLanguage || result.language,
-        frozen: result.frozen,
-      });
+      const result = await this.session.load(path);
+      this.session.apply(this.document, result);
 
       this.lifecycleState = defaultMode;
 
       // For view mode without extension, ensure URL has extension (use replace to avoid duplicate entries)
-      if (defaultMode === 'presenting' && !ext && this.document.key) {
-        if (this.document.language) {
-          const langExt = getExtensionForLanguage(this.document.language);
-          this.history.replace(buildPath(this.document.key, langExt));
-        }
+      if (
+        defaultMode === 'presenting' &&
+        !ext &&
+        result.canonicalPath !== window.location.pathname
+      ) {
+        this.navigation.replacePath(result.canonicalPath);
       }
 
       const targetScrollY = historyState?.scrollY ?? 0;
@@ -250,7 +217,7 @@ export class AppController {
       // Render with transition
       this.renderWithTransition(
         defaultMode,
-        defaultMode === 'presenting' ? highlightResult.highlighted : undefined,
+        defaultMode === 'presenting' ? result.highlighted : undefined,
         targetScrollY
       );
     } catch (err) {
@@ -259,7 +226,7 @@ export class AppController {
       // Fallback: show new document
       this.lifecycleState = 'editing';
       this.document.reset();
-      this.history.replace('/');
+      this.navigation.replacePath('/');
       this.view.showError('Document not found.');
       this.view.renderFullState(this.document, 'editing');
     }
@@ -279,8 +246,7 @@ export class AppController {
   }
 
   private captureScrollInHistory(): void {
-    const existing = (window.history.state as HistoryState) ?? {};
-    this.history.replace(window.location.pathname, { ...existing, scrollY: window.scrollY });
+    this.navigation.captureScroll(window.location.pathname);
   }
 
   /**
@@ -321,7 +287,6 @@ export class AppController {
         this.document.reset();
         this.document.content = content;
         this.lifecycleState = 'editing';
-        // URL stays at current doc — no history push
         this.view.renderFullState(this.document, 'editing');
       });
     }
@@ -341,14 +306,11 @@ export class AppController {
 
     // Same history behaviour as New: persist draft/scroll, then navigate to /
     if (this.lifecycleState === 'editing' && this.document.content) {
-      this.history.replace(window.location.pathname, {
-        content: this.document.content,
-        scrollY: window.scrollY,
-      });
+      this.navigation.replaceDraft(window.location.pathname, this.document.content, window.scrollY);
     } else {
       this.captureScrollInHistory();
     }
-    this.history.push('/');
+    this.navigation.pushPath('/');
 
     this.document.reset();
     this.document.content = content;
@@ -363,7 +325,6 @@ export class AppController {
     // During editing phase, textarea owns content
     if (this.lifecycleState === 'editing') {
       this.document.content = content;
-      // Update button states
       this.view.renderUIState(this.document, 'editing');
     }
   }
