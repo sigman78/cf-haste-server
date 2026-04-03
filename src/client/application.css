@@ -16,7 +16,7 @@
     --color-toast-bg:    #a31515;   /* error toast background */
     --color-text-bright: #fff;      /* toast text, tooltip label */
     --color-line-highlight: rgba(255, 255, 255, 0.03); /* current line highlight */
-    --color-selection:   #073642;   /* text selection background (solarized base02) */
+    --color-selection:   #114955;   /* solid selection background with stronger contrast */
 
     /* typography */
     --font-editor: monospace;
@@ -188,7 +188,7 @@ body {
 
 #editor::selection {
     background: var(--color-selection) !important;
-    color: var(--color-text-bright) !important;
+    color: inherit !important;
 }
 
 /* Viewer (present mode) */
@@ -219,7 +219,6 @@ body {
 #viewer::selection,
 #viewer *::selection {
     background: var(--color-selection) !important;
-    color: var(--color-text-bright) !important;
 }
 
 #viewer.is-loading {

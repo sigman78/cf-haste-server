@@ -37,7 +37,7 @@ code.hljs {
   /* --- Semantic roles --- */
   --color-bg:           var(--sol-base03);
   --color-bg-highlight: var(--sol-base02);
-  --color-selection:    var(--sol-base02);
+  --color-selection:    oklch(0.42 0.07 219.5deg);
   --color-text:         var(--sol-base0);
   --color-punctuation:  var(--sol-base01);
   --color-comment:      var(--sol-base03); /*var(--sol-yellow); */
@@ -65,7 +65,6 @@ code.hljs {
 .hljs::selection,
 .hljs ::selection {
   background-color: var(--color-selection);
-  color: var(--color-text);
 }
 
 /* purposely do not highlight these */
