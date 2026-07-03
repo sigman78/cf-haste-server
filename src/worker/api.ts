@@ -116,9 +116,7 @@ api.post('/documents', async (c) => {
       return c.json({ message: 'No content provided' }, 400);
     }
 
-    // Measure actual bytes, not UTF-16 code units
-    const byteSize = new TextEncoder().encode(content).byteLength;
-    if (byteSize > config.maxPasteSize) {
+    if (content.length > config.maxPasteSize) {
       return c.json(
         { message: `Document exceeds maximum size of ${config.maxPasteSize} bytes` },
         400
