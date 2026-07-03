@@ -571,4 +571,133 @@ test.describe('Paste lifecycle', () => {
     await expectEnabled(page, S.twitterBtn);
     await expectEnabled(page, S.newBtn);
   });
+
+  // -- 28. Copy link / raw buttons -------------------------------------------
+
+  test('28 - copy link and raw are disabled while editing, enabled when presenting', async ({
+    page,
+  }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    await waitForEditingMode(page);
+
+    await expectDisabled(page, S.copyLinkBtn);
+    await expectDisabled(page, S.rawBtn);
+
+    await page.locator(S.editor).fill('shareable content');
+    await page.locator(S.saveBtn).click();
+    await page.waitForURL(/\/testkey0/);
+    await waitForPresentingMode(page);
+
+    await expectEnabled(page, S.copyLinkBtn);
+    await expectEnabled(page, S.rawBtn);
+  });
+
+  test('29 - frozen document keeps copy link enabled but disables raw', async ({ page }) => {
+    const store = await setupMockApi(page);
+    store.setFrozen('readme', 'This is a read-only document.');
+
+    await page.goto('/readme');
+    await waitForPresentingMode(page);
+
+    await expectEnabled(page, S.copyLinkBtn);
+    await expectDisabled(page, S.rawBtn);
+  });
+
+  test('30 - raw button opens /raw/:key in a new tab', async ({ page, context }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    await waitForEditingMode(page);
+
+    await page.locator(S.editor).fill('raw me');
+    await page.locator(S.saveBtn).click();
+    await page.waitForURL(/\/testkey0/);
+    await waitForPresentingMode(page);
+
+    const [popup] = await Promise.all([
+      context.waitForEvent('page'),
+      page.locator(S.rawBtn).click(),
+    ]);
+    await popup.waitForLoadState('domcontentloaded');
+    expect(new URL(popup.url()).pathname).toBe('/raw/testkey0');
+  });
+});
+
+test.describe('Copy link to clipboard', () => {
+  test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
+
+  test('31 - copy link puts the paste URL on the clipboard and shows a toast', async ({ page }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    await waitForEditingMode(page);
+
+    await page.locator(S.editor).fill('clipboard content');
+    await page.locator(S.saveBtn).click();
+    await page.waitForURL(/\/testkey0/);
+    await waitForPresentingMode(page);
+
+    await page.locator(S.copyLinkBtn).click();
+
+    await expect(page.locator(S.toast)).toHaveClass(/visible/);
+    await expect(page.locator(S.toast)).toHaveText('Link copied to clipboard');
+    await expect(page.locator(S.toast)).not.toHaveClass(/error/);
+
+    const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clipboard).toBe(page.url());
+  });
+});
+
+test.describe('Draft autosave', () => {
+  test('32 - unsaved draft is restored after reload', async ({ page }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    await waitForEditingMode(page);
+
+    const draft = 'work in progress\nnot saved yet';
+    await page.locator(S.editor).fill(draft);
+
+    // Wait for the debounced draft write to land in localStorage
+    await page.waitForFunction(() => localStorage.getItem('haste-draft') !== null);
+
+    // Accept the beforeunload confirmation on reload
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.reload();
+
+    await waitForEditingMode(page);
+    await expect(page.locator(S.editor)).toHaveValue(draft);
+    await expect(page.locator(S.toast)).toHaveText('Restored unsaved draft');
+    await expectEnabled(page, S.saveBtn);
+  });
+
+  test('33 - draft is cleared after a successful save', async ({ page }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    await waitForEditingMode(page);
+
+    await page.locator(S.editor).fill('to be saved');
+    await page.waitForFunction(() => localStorage.getItem('haste-draft') !== null);
+
+    await page.locator(S.saveBtn).click();
+    await page.waitForURL(/\/testkey0/);
+    await waitForPresentingMode(page);
+
+    const stored = await page.evaluate(() => localStorage.getItem('haste-draft'));
+    expect(stored).toBeNull();
+  });
+
+  test('34 - discarding via New clears the stored draft', async ({ page }) => {
+    await setupMockApi(page);
+    await page.goto('/');
+    await waitForEditingMode(page);
+
+    await page.locator(S.editor).fill('discard me');
+    await page.waitForFunction(() => localStorage.getItem('haste-draft') !== null);
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.locator(S.newBtn).click();
+    await page.waitForURL('/');
+
+    const stored = await page.evaluate(() => localStorage.getItem('haste-draft'));
+    expect(stored).toBeNull();
+  });
 });

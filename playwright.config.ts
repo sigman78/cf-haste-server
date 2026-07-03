@@ -12,6 +12,11 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
+    // Allow CI/sandbox environments with a pre-installed browser to skip
+    // "playwright install" by pointing at their own chromium binary
+    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE && {
+      launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE },
+    }),
   },
 
   projects: [

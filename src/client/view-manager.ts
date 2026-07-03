@@ -18,6 +18,8 @@ export interface ViewCallbacks {
   onSave: () => void;
   onNew: () => void;
   onDuplicate: () => void;
+  onCopyLink: () => void;
+  onRaw: () => void;
   onTwitter: () => void;
   onContentInput: (content: string) => void;
   onFileDrop: (content: string) => void;
@@ -38,7 +40,6 @@ export class ViewManager {
   private appName: string;
   private lineNumbers: boolean;
   private callbacks?: ViewCallbacks;
-  private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly isMac: boolean =
     /Mac|iPhone|iPad|iPod/.test(navigator.platform) || navigator.userAgent.includes('Mac');
   private readonly ZOOM_KEY = 'editor-zoom';
@@ -199,44 +200,6 @@ export class ViewManager {
   }
 
   /**
-   * Show error toast message
-   */
-  showError(message: string): void {
-    const toast = document.getElementById('toast')!;
-    toast.textContent = message;
-    toast.classList.add('visible');
-    if (this.toastTimer !== null) clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => {
-      toast.classList.remove('visible');
-      this.toastTimer = null;
-    }, 4000);
-  }
-
-  /**
-   * Show saving progress bar
-   */
-  showProgress(): void {
-    const bar = document.getElementById('progress-bar')!;
-    bar.classList.remove('done', 'clear');
-    bar.getBoundingClientRect();
-    bar.classList.add('running');
-  }
-
-  /**
-   * Hide saving progress bar
-   */
-  hideProgress(): void {
-    const bar = document.getElementById('progress-bar')!;
-    bar.classList.remove('running');
-    bar.classList.add('done');
-
-    setTimeout(() => {
-      bar.classList.remove('done');
-      bar.classList.add('clear');
-    }, 500);
-  }
-
-  /**
    * Update document title
    */
   private updateTitle(state: Paste): void {
@@ -260,6 +223,8 @@ export class ViewManager {
     updateBtn(document.querySelector('#box2 .new'), true);
     updateBtn(document.querySelector('#box2 .save'), editing && state.content.trim() !== '');
     updateBtn(document.querySelector('#box2 .duplicate'), presenting && !state.frozen);
+    updateBtn(document.querySelector('#box2 .copylink'), presenting);
+    updateBtn(document.querySelector('#box2 .raw'), presenting && !state.frozen);
     updateBtn(document.querySelector('#box2 .twitter'), presenting);
   }
 
@@ -291,6 +256,18 @@ export class ViewManager {
         action: () => this.callbacks?.onDuplicate(),
         label: 'Duplicate & Edit',
         shortcut: `${alt} + shift + d`,
+      },
+      {
+        selector: '.copylink',
+        action: () => this.callbacks?.onCopyLink(),
+        label: 'Copy Link',
+        shortcut: `${alt} + shift + c`,
+      },
+      {
+        selector: '.raw',
+        action: () => this.callbacks?.onRaw(),
+        label: 'View Raw',
+        shortcut: `${alt} + shift + r`,
       },
       {
         selector: '.twitter',
@@ -357,6 +334,14 @@ export class ViewManager {
           case 'd':
             evt.preventDefault();
             this.callbacks?.onDuplicate();
+            break;
+          case 'c':
+            evt.preventDefault();
+            this.callbacks?.onCopyLink();
+            break;
+          case 'r':
+            evt.preventDefault();
+            this.callbacks?.onRaw();
             break;
           case 'x':
             evt.preventDefault();
