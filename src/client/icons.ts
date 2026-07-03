@@ -1,4 +1,4 @@
-import { Save, FileText, Copy, Twitter, createElement } from 'lucide';
+import { Save, FileText, Copy, Link, FileCode, Twitter, createElement } from 'lucide';
 
 /**
  * Initialize vector icons in the UI
@@ -9,6 +9,8 @@ export function initializeIcons(): void {
     save: Save,
     new: FileText,
     duplicate: Copy,
+    copylink: Link,
+    raw: FileCode,
     twitter: Twitter,
   };
 

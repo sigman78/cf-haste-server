@@ -17,7 +17,14 @@ To make a new entry, click "New" (or press **Alt+Shift+N**)
 - **Ctrl+Enter** (or Ctrl+S) - Save your paste
 - **Alt+Shift+N** - Create new paste
 - **Alt+Shift+D** - Duplicate and edit
+- **Alt+Shift+C** - Copy paste link to clipboard
+- **Alt+Shift+R** - Open raw view in a new tab
 - **Alt+Shift+X** - Share on Twitter
+
+## Drafts
+
+Anything you type is kept as a local draft in your browser. Close the tab,
+come back later, and your unsaved text is restored.
 
 ## Duration
 

@@ -1,153 +1,17 @@
 import { Hono } from 'hono';
-import type { Env, SaveResponse, GetResponse } from '../shared/types';
+import type { Env } from './types';
+import { api } from './api';
 import { createStore } from './storage';
 
 const app = new Hono<{ Bindings: Env }>();
-
-function applyDocumentCacheHeaders(
-  env: Env,
-  setHeader: (name: string, value: string) => void
-): void {
-  const browserMaxAge = parseInt(env.BROWSER_CACHE_MAX_AGE || '0');
-  if (browserMaxAge > 0) {
-    setHeader('Cache-Control', `public, max-age=${browserMaxAge}, immutable`);
-  }
-  const cdnMaxAge = parseInt(env.CDN_CACHE_MAX_AGE || '0');
-  if (cdnMaxAge > 0) {
-    const swr = parseInt(env.CDN_STALE_WHILE_REVALIDATE || '0');
-    const value =
-      swr > 0
-        ? `public, max-age=${cdnMaxAge}, stale-while-revalidate=${swr}`
-        : `public, max-age=${cdnMaxAge}`;
-    setHeader('Cloudflare-CDN-Cache-Control', value);
-  }
-}
 
 // Health check
 app.get('/health', (c) => {
   return c.json({ status: 'ok', timestamp: Date.now() });
 });
 
-// Special pages
-const PUBLIC_MD_PAGES: Record<string, string> = {
-  about: '/_about.md',
-};
-
-// Get document by key
-app.get('/documents/:id', async (c) => {
-  const isLocalDev = !c.req.raw.cf;
-  const key = c.req.param('id');
-
-  // Handle "special" pastes
-  if (key in PUBLIC_MD_PAGES) {
-    try {
-      const aboutUrl = new URL(c.req.url);
-      aboutUrl.pathname = PUBLIC_MD_PAGES[key];
-      const aboutResponse = await c.env.ASSETS.fetch(
-        new Request(aboutUrl.toString(), { method: 'GET' })
-      );
-
-      if (aboutResponse.ok) {
-        const content = await aboutResponse.text();
-        const response: GetResponse = {
-          content,
-          key: key,
-          frozen: true,
-        };
-        if (!isLocalDev) applyDocumentCacheHeaders(c.env, (k, v) => c.header(k, v));
-        return c.json(response);
-      }
-    } catch (error) {
-      console.error('Error loading public file:', error);
-    }
-    return c.json({ message: 'Document not found' }, 404);
-  }
-
-  const store = createStore(c.env);
-
-  try {
-    const content = await store.get(key);
-
-    if (!content) {
-      return c.json({ message: 'Document not found' }, 404);
-    }
-
-    const response: GetResponse = {
-      content,
-      key,
-    };
-
-    if (!isLocalDev) applyDocumentCacheHeaders(c.env, (k, v) => c.header(k, v));
-    return c.json(response);
-  } catch (error) {
-    console.error('Error retrieving document:', error);
-    return c.json({ message: 'Error retrieving document' }, 500);
-  }
-});
-
-// Create new document
-app.post('/documents', async (c) => {
-  const store = createStore(c.env);
-  const maxSize = parseInt(c.env.MAX_PASTE_SIZE || '400000');
-  const keyLength = parseInt(c.env.KEY_LENGTH || '10');
-
-  try {
-    const contentType = c.req.header('content-type') || '';
-    let content: string;
-
-    if (contentType.includes('application/json')) {
-      const body = await c.req.json<{ content: string }>();
-      content = body.content || '';
-    } else {
-      content = await c.req.text();
-    }
-
-    // Validate content
-    if (!content || content.trim().length === 0) {
-      return c.json({ message: 'No content provided' }, 400);
-    }
-
-    if (content.length > maxSize) {
-      return c.json({ message: `Document exceeds maximum size of ${maxSize} bytes` }, 400);
-    }
-
-    // Generate unique key and save
-    const key = await store.generateKey(keyLength);
-    await store.set(key, content);
-
-    const response: SaveResponse = {
-      key,
-    };
-
-    return c.json(response, 201);
-  } catch (error) {
-    console.error('Error saving document:', error);
-    return c.json({ message: 'Error saving document' }, 500);
-  }
-});
-
-// Raw document endpoint (for copy/download)
-app.get('/raw/:id', async (c) => {
-  const isLocalDev = !c.req.raw.cf;
-  const key = c.req.param('id');
-  const store = createStore(c.env);
-
-  try {
-    const content = await store.get(key);
-
-    if (!content) {
-      return c.text('Document not found', 404);
-    }
-
-    if (!isLocalDev) applyDocumentCacheHeaders(c.env, (k, v) => c.header(k, v));
-    return c.text(content, 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-    });
-  } catch (error) {
-    console.error('Error retrieving raw document:', error);
-    return c.text('Error retrieving document', 500);
-  }
-});
+// Document API: /documents, /documents/:id, /raw/:id
+app.route('/', api);
 
 // Serve static assets from Vite build
 app.get('*', async (c) => {
@@ -159,7 +23,6 @@ app.get('*', async (c) => {
   const isDocumentRoute = path.match(/^\/[\w-]+(\.[\w]+)?([\/\w\.-])*$/);
   // Actually existing resources should be served as default w/o worker so this is redundant
   const isAssetRoute = path.startsWith('/assets/');
-  // || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.txt');
 
   if (isDocumentRoute && !isAssetRoute) {
     // Rewrite to index.html for SPA routing
@@ -173,4 +36,17 @@ app.get('*', async (c) => {
   return c.env.ASSETS.fetch(c.req.raw);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+
+  // Cron trigger (see wrangler.toml [triggers]) purges expired documents
+  async scheduled(_controller, env, ctx) {
+    const store = createStore(env);
+    ctx.waitUntil(
+      store
+        .cleanup()
+        .then((deleted) => console.log(`Cleanup: removed ${deleted} expired documents`))
+        .catch((err) => console.error('Cleanup failed:', err))
+    );
+  },
+} satisfies ExportedHandler<Env>;

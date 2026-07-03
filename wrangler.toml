@@ -14,6 +14,10 @@ binding = "DB"
 database_name = "haste-db"
 database_id = "00000000-0000-0000-0000-000000000000" # Placeholder for local dev - run: wrangler d1 create haste-db for production
 
+# Nightly cleanup of expired documents
+[triggers]
+crons = ["17 3 * * *"]
+
 # Assets binding for serving static files
 [assets]
 not_found_handling = "single-page-application"

@@ -15,6 +15,8 @@ import appConfig from './config';
 import { parsePath, type ParsedPath } from './path-utils';
 import { DocumentSession } from './document-session';
 import { NavigationState, type HistoryState } from './navigation-state';
+import { Notifications } from './notifications';
+import { DraftStore } from './draft-store';
 
 type ViewMode = 'editing' | 'presenting';
 type ActivityState = 'idle' | 'loading' | 'saving';
@@ -34,6 +36,8 @@ export class AppController {
   private view: ViewManager;
   private transitions: TransitionManager;
   private navigation: NavigationState;
+  private notify: Notifications;
+  private draft: DraftStore;
 
   // State machine
   private viewMode: ViewMode = 'editing';
@@ -51,6 +55,8 @@ export class AppController {
     // Initialize modules
     this.document = new Paste();
     this.session = new DocumentSession();
+    this.notify = new Notifications();
+    this.draft = new DraftStore();
     this.view = new ViewManager({
       appName: options.appName,
       enableTwitter: options.enableTwitter,
@@ -64,6 +70,8 @@ export class AppController {
       onSave: () => this.handleSave(),
       onNew: () => this.handleNew(),
       onDuplicate: () => this.handleDuplicate(),
+      onCopyLink: () => this.handleCopyLink(),
+      onRaw: () => this.handleRaw(),
       onTwitter: () => this.handleTwitter(),
       onContentInput: (content) => this.handleContentInput(content),
       onFileDrop: (content) => this.handleFileDrop(content),
@@ -102,12 +110,22 @@ export class AppController {
   private handleRoot(state?: unknown): void {
     if (this.isBusy) return;
 
+    const isFirstLoad = this.isFirstLoad;
     this.isFirstLoad = false;
     const historyState = state as HistoryState | undefined;
     const targetScrollY = historyState?.scrollY ?? 0;
 
     this.document.reset();
-    if (historyState?.content) this.document.content = historyState.content;
+    if (historyState?.content) {
+      this.document.content = historyState.content;
+    } else if (isFirstLoad) {
+      // Fresh visit: restore an unsaved draft from a previous session
+      const draft = this.draft.load();
+      if (draft) {
+        this.document.content = draft;
+        this.notify.toast('Restored unsaved draft');
+      }
+    }
     this.transitionToView('editing', { scrollY: targetScrollY });
   }
 
@@ -142,14 +160,15 @@ export class AppController {
 
     try {
       this.activity = 'saving';
-      this.view.showProgress();
+      this.notify.progressStart();
 
       const result = await this.session.save(this.document.content);
       this.document.apply(result.paste);
+      this.draft.clear();
 
       this.activity = 'idle';
       setTimeout(() => {
-        this.view.hideProgress();
+        this.notify.progressDone();
       }, 500);
 
       this.navigation.replaceDraft(window.location.pathname, content, window.scrollY);
@@ -162,12 +181,12 @@ export class AppController {
       console.error('Save failed:', err);
 
       // Fallback: stay in editing mode
-      this.view.hideProgress();
+      this.notify.progressDone();
       this.activity = 'idle';
       this.viewMode = 'editing';
       this.view.renderUIState(this.document, 'editing');
 
-      this.view.showError('Failed to save. Please try again.');
+      this.notify.toast('Failed to save. Please try again.', 'error');
     }
   }
 
@@ -215,7 +234,7 @@ export class AppController {
       this.activity = 'idle';
       this.document.reset();
       this.navigation.replacePath('/');
-      this.view.showError('Document not found.');
+      this.notify.toast('Document not found.', 'error');
       this.transitionToView('editing');
     }
   }
@@ -256,6 +275,7 @@ export class AppController {
       ) {
         return;
       }
+      if (this.viewMode === 'editing') this.draft.clear();
       this.newDocument(true);
     }
   }
@@ -269,6 +289,32 @@ export class AppController {
       this.document.reset();
       this.document.content = content;
       this.transitionToView('editing');
+    }
+  }
+
+  /**
+   * Handle copy link button/shortcut
+   */
+  private handleCopyLink(): void {
+    if (this.viewMode !== 'presenting' || this.activity !== 'idle') return;
+
+    navigator.clipboard.writeText(window.location.href).then(
+      () => this.notify.toast('Link copied to clipboard'),
+      () => this.notify.toast('Could not copy link.', 'error')
+    );
+  }
+
+  /**
+   * Handle raw view button/shortcut
+   */
+  private handleRaw(): void {
+    if (
+      this.viewMode === 'presenting' &&
+      this.activity === 'idle' &&
+      !this.document.frozen &&
+      this.document.key
+    ) {
+      window.open(`/raw/${this.document.key}`, '_blank', 'noopener');
     }
   }
 
@@ -298,6 +344,7 @@ export class AppController {
     // During editing phase, textarea owns content
     if (this.viewMode === 'editing') {
       this.document.content = content;
+      this.draft.schedule(content);
       this.view.renderUIState(this.document, 'editing');
     }
   }

@@ -61,12 +61,23 @@ curl https://your-worker.dev/raw/KEY
 | Save       | Ctrl+Enter / Ctrl+S |
 | New        | Alt+Shift+N         |
 | Duplicate  | Alt+Shift+D         |
+| Copy link  | Alt+Shift+C         |
+| View raw   | Alt+Shift+R         |
 | Share on X | Alt+Shift+X         |
+
+## Niceties
+
+- **Draft autosave** — unsaved text is kept in localStorage and restored on your next visit
+- **Copy link** — one click (or Alt+Shift+C) copies the paste URL to the clipboard
+- **Raw view** — open the plain-text version of any paste in a new tab
+- **Nightly cleanup** — a cron trigger purges expired pastes automatically
 
 ## Tests
 
 ```bash
-npm test
+npm test          # unit tests (jest)
+npm run test:e2e  # browser tests (playwright)
+npm run test:api  # API integration tests (needs `npm run dev` running)
 ```
 
 ## License

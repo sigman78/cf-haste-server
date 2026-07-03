@@ -13,7 +13,7 @@
     --color-logo:        #fdf6e3;   /* logo fill (solarized base3) */
 
     /* ui / overlay colors */
-    --color-toast-bg:    #a31515;   /* error toast background */
+    --color-toast-bg:    #a31515;   /* error toast background (info toasts reuse tooltip bg) */
     --color-text-bright: #fff;      /* toast text, tooltip label */
     --color-line-highlight: rgba(255, 255, 255, 0.03); /* current line highlight */
     --color-selection:   #114955;   /* solid selection background with stronger contrast */
@@ -62,7 +62,7 @@
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--color-toast-bg);
+    background: var(--color-tooltip-bg);
     color: var(--color-text-bright);
     padding: 10px 20px;
     border-radius: 3px;
@@ -73,6 +73,10 @@
     transition: opacity 0.2s ease;
     pointer-events: none;
     white-space: nowrap;
+}
+
+#toast.error {
+    background: var(--color-toast-bg);
 }
 
 #toast.visible {
