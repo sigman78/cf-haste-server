@@ -2,8 +2,11 @@ import { Hono } from 'hono';
 import type { Env } from './types';
 import { api } from './api';
 import { createStore } from './storage';
+import { installRequestPolicy } from './request-policy';
 
 const app = new Hono<{ Bindings: Env }>();
+
+installRequestPolicy(app);
 
 // Health check
 app.get('/health', (c) => {

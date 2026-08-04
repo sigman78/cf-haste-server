@@ -164,6 +164,9 @@ export const extensionMap: Record<string, string> = {
   txt: '',
 };
 
+export const MAX_AUTO_HIGHLIGHT_LENGTH = 10_000;
+export const MAX_EXPLICIT_HIGHLIGHT_LENGTH = 50_000;
+
 /**
  * Language Utilities
  */
@@ -172,7 +175,8 @@ export const extensionMap: Record<string, string> = {
  * Get language for file extension
  */
 export function getLanguageForExtension(ext: string): string | undefined {
-  return extensionMap[ext] || ext;
+  const normalized = ext.toLowerCase();
+  return Object.hasOwn(extensionMap, normalized) ? extensionMap[normalized] : undefined;
 }
 
 /**
@@ -207,8 +211,21 @@ export function highlightContent(content: string, language?: string): HighlightR
     };
   }
 
+  const canUseLanguage = language && hljs.getLanguage(language);
+
+  // Highlighting is synchronous. Bound attacker-controlled work so opening a
+  // large paste cannot freeze the viewer tab.
+  if (
+    content.length > (canUseLanguage ? MAX_EXPLICIT_HIGHLIGHT_LENGTH : MAX_AUTO_HIGHLIGHT_LENGTH)
+  ) {
+    return {
+      highlighted: escapeHtml(content),
+      language: canUseLanguage ? language : undefined,
+    };
+  }
+
   // Language specified - use it directly
-  if (language) {
+  if (canUseLanguage) {
     const result = hljs.highlight(content, { language });
     return {
       highlighted: result.value,

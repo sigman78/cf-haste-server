@@ -40,11 +40,16 @@ Your instance will be live at `https://haste.YOUR-SUBDOMAIN.workers.dev`.
 
 Edit `wrangler.toml` vars:
 
-| Variable              | Default | Description             |
-| --------------------- | ------- | ----------------------- |
-| `MAX_PASTE_SIZE`      | 400000  | Max paste size in bytes |
-| `KEY_LENGTH`          | 10      | Length of paste IDs     |
-| `DEFAULT_EXPIRE_DAYS` | 30      | Days until expiration   |
+| Variable              | Default       | Description                                                    |
+| --------------------- | ------------- | -------------------------------------------------------------- |
+| `MAX_PASTE_SIZE`      | 400000        | Max paste size in bytes                                        |
+| `KEY_LENGTH`          | 10            | Length of paste IDs                                            |
+| `KEY_STRATEGY`        | pronounceable | Paste ID format: `pronounceable`, URL-safe `random`, or `uuid` |
+| `DEFAULT_EXPIRE_DAYS` | 30            | Days until expiration                                          |
+
+`KEY_LENGTH` applies to `pronounceable` and `random` IDs. Random IDs carry six bits of
+entropy per character; UUID IDs use `crypto.randomUUID()` and ignore `KEY_LENGTH`.
+Creation and read limits are configured by the two `ratelimits` bindings in `wrangler.toml`.
 
 ## API
 

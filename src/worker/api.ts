@@ -47,7 +47,7 @@ api.get('/documents/:id', async (c) => {
   const config = getServerConfig(c.env);
 
   // Handle "special" pastes
-  if (key in PUBLIC_MD_PAGES) {
+  if (Object.hasOwn(PUBLIC_MD_PAGES, key)) {
     try {
       const pageUrl = new URL(c.req.url);
       pageUrl.pathname = PUBLIC_MD_PAGES[key];
@@ -105,8 +105,21 @@ api.post('/documents', async (c) => {
     let content: string;
 
     if (contentType.includes('application/json')) {
-      const body = await c.req.json<{ content: string }>();
-      content = body.content || '';
+      let body: unknown;
+      try {
+        body = await c.req.json<unknown>();
+      } catch {
+        return c.json({ message: 'Invalid JSON body' }, 400);
+      }
+
+      if (
+        !body ||
+        typeof body !== 'object' ||
+        typeof (body as { content?: unknown }).content !== 'string'
+      ) {
+        return c.json({ message: 'JSON body must contain a string content field' }, 400);
+      }
+      content = (body as { content: string }).content;
     } else {
       content = await c.req.text();
     }
@@ -116,14 +129,18 @@ api.post('/documents', async (c) => {
       return c.json({ message: 'No content provided' }, 400);
     }
 
-    if (content.length > config.maxPasteSize) {
+    const contentBytes = new TextEncoder().encode(content).byteLength;
+    if (contentBytes > config.maxPasteSize) {
       return c.json(
         { message: `Document exceeds maximum size of ${config.maxPasteSize} bytes` },
         400
       );
     }
 
-    const key = await store.create(content, config.keyLength);
+    const key = await store.create(content, {
+      strategy: config.keyStrategy,
+      length: config.keyLength,
+    });
 
     const response: SaveResponse = {
       key,

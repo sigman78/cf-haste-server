@@ -28,7 +28,25 @@ binding = "ASSETS"
 [vars]
 MAX_PASTE_SIZE = "400000"
 KEY_LENGTH = "10"
+KEY_STRATEGY = "pronounceable"             # pronounceable | random | uuid
 DEFAULT_EXPIRE_DAYS = "30"
 BROWSER_CACHE_MAX_AGE = "3600"        # browser Cache-Control max-age in seconds; "0" to disable
 CDN_CACHE_MAX_AGE = "2592000"         # CF edge Cloudflare-CDN-Cache-Control max-age in seconds; "0" to disable
 CDN_STALE_WHILE_REVALIDATE = "86400"  # stale-while-revalidate for CF edge; "0" to omit
+
+# Coarse abuse protection. Namespace IDs only need to be unique within this account.
+[[ratelimits]]
+name = "CREATE_RATE_LIMITER"
+namespace_id = "81234001"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+[[ratelimits]]
+name = "READ_RATE_LIMITER"
+namespace_id = "81234002"
+
+  [ratelimits.simple]
+  limit = 300
+  period = 60

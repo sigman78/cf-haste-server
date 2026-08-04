@@ -1,4 +1,4 @@
-import type { Env } from './types';
+import type { Env, KeyStrategy } from './types';
 
 /**
  * All env-var parsing lives here so routes never touch raw strings
@@ -7,10 +7,17 @@ import type { Env } from './types';
 export interface ServerConfig {
   maxPasteSize: number;
   keyLength: number;
+  keyStrategy: KeyStrategy;
   defaultExpireDays: number;
   browserCacheMaxAge: number;
   cdnCacheMaxAge: number;
   cdnStaleWhileRevalidate: number;
+}
+
+function keyStrategyVar(value: string | undefined): KeyStrategy {
+  return value === 'random' || value === 'uuid' || value === 'pronounceable'
+    ? value
+    : 'pronounceable';
 }
 
 function intVar(value: string | undefined, fallback: number): number {
@@ -22,6 +29,7 @@ export function getServerConfig(env: Env): ServerConfig {
   return {
     maxPasteSize: intVar(env.MAX_PASTE_SIZE, 400000),
     keyLength: intVar(env.KEY_LENGTH, 10),
+    keyStrategy: keyStrategyVar(env.KEY_STRATEGY),
     defaultExpireDays: intVar(env.DEFAULT_EXPIRE_DAYS, 30),
     browserCacheMaxAge: intVar(env.BROWSER_CACHE_MAX_AGE, 0),
     cdnCacheMaxAge: intVar(env.CDN_CACHE_MAX_AGE, 0),
